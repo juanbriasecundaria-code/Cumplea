@@ -3108,7 +3108,7 @@ function saveState() {
   script.type = 'module';
   script.textContent = `
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -3127,6 +3127,14 @@ function saveState() {
       try {
         await setDoc(doc(db, 'ndj', key), { data: value, ts: Date.now() });
       } catch(e) { console.warn('Firebase write error:', e); }
+    };
+    // Read function - used to load imp_words on startup
+    window._fbRead = async function(key) {
+      try {
+        const snap = await getDoc(doc(db, 'ndj', key));
+        if (snap.exists()) return snap.data().data;
+      } catch(e) { console.warn('Firebase read error:', e); }
+      return null;
     };
     window._fbReady = true;
     console.log('Firebase listo ✓');
@@ -3975,6 +3983,7 @@ const WORD_CATEGORY_MAP = {
     'suecia','suiza','surinam','tailandia','tanzania','timor','togo','trinidad','túnez',
     'turquía','turquia','ucrania','uganda','uruguay','uzbekistán','venezuela','vietnam',
     'yemen','zambia','zimbabue',
+    'Cabo Verde',
   ],
   // Figuras internacionales 🌐
   'Figuras internacionales 🌐': [
@@ -4011,6 +4020,9 @@ const WORD_CATEGORY_MAP = {
     'einstein','newton','darwin','freud','tesla','edison','galileo','da vinci','picasso',
     'van gogh','dalí','dali','frida kahlo','mozart','beethoven','bach',
     'shakespeare','cervantes','tolkien','stephen king',
+    'Johnny Deep',
+    'Guillermo Franchella',
+    'Ricardo Darín',
   ],
   // Animales 🐾
   'Animales 🐾': [
@@ -4027,6 +4039,8 @@ const WORD_CATEGORY_MAP = {
     'atun','merluza','trucha','pulpo','calamar','langosta','mejillon','ostra','almeja',
     'cangrejo','langostino','caballito de mar','mariposa','abeja','avispa','hormiga',
     'escarabajo','libelula','mantis','grillo','cigarra','mosquito','mosca',
+    'Conejo',
+    'Caballo',
   ],
   // Comidas 🍕
   'Comidas 🍕': [
@@ -4051,6 +4065,9 @@ const WORD_CATEGORY_MAP = {
     'papa','batata','choclo','arvejas','porotos','lentejas','garbanzos',
     'manzana','naranja','banana','frutilla','frambuesa','arándano','kiwi','mango','piña',
     'uva','pera','melocoton','durazno','ciruela','cereza','sandia','melon',
+    'Café',
+    'Chocolate',
+    'Pochoclos',
   ],
   // Películas y series 🎬
   'Películas y series 🎬': [
@@ -4082,6 +4099,13 @@ const WORD_CATEGORY_MAP = {
     'cinderella','snow white','sleeping beauty','little mermaid',
     'la la land','whiplash','birdman','moonlight','parasite','parásito',
     'everything everywhere','the menu','glass onion','knives out','get out','us',
+    'Monsters INC',
+    'La Bella y la Bestia',
+    'Buscando a Nemo',
+    'Shrek',
+    'La Era del Hielo',
+    'Piratas del Caribe',
+    'Rápidos y Furiosos',
   ],
   // Marcas 🏷️
   'Marcas 🏷️': [
@@ -4121,6 +4145,13 @@ const WORD_CATEGORY_MAP = {
     'visa','mastercard','american express','amex','paypal',
     'johnson','pfizer','bayer','novartis','roche',
     'shell','bp','exxon','mobil','ypf','total',
+    'Microsoft',
+    'Starbucks',
+    'Amazon',
+    'Toblerone',
+    'Pepsi',
+    'VISA',
+    'MasterCard',
   ],
   // Lugares icónicos 🗺️
   'Lugares icónicos 🗺️': [
@@ -4149,6 +4180,14 @@ const WORD_CATEGORY_MAP = {
     'sydney opera house','uluru','great barrier reef',
     'bora bora','maldivas','maldives','santorini','ibiza','cancun',
     'amazon','amazonia','amazonas','congo','nilo','nile','mississippi',
+    'Torre de Pizza',
+    'Piramides de Giza',
+    'Muralla China',
+    'London Eye',
+    'Empire State',
+    'Cataratas del Iguazu',
+    'Vaticano',
+    'Times Square',
   ],
   // Deportes ⚽
   'Deportes ⚽': [
@@ -4167,6 +4206,13 @@ const WORD_CATEGORY_MAP = {
     'padel','pádel','squash','badminton','ping pong','tenis de mesa',
     'billar','pool','snooker','ajedrez','chess','damas','poker','bridge',
     'esports','gaming','league of legends','dota','counter strike','fortnite','valorant',
+    'Surf',
+    'Tiro con Arco',
+    'Esgrima',
+    'Criquet',
+    'Hockey',
+    'Ping Pong',
+    'Fútbol Americano',
   ],
 };
 
@@ -4236,6 +4282,26 @@ const IMP_WORDS = {
   'Deportes ⚽': [
     'Fútbol','Básquet','Tenis','Natación','Boxeo','Atletismo','Ciclismo','Golf','Rugby','Vóley',
   ],
+  'Otras 🗂️': [
+    'Tijeras',
+    'Ducha',
+    'Celular',
+    'Cepillo de Dientes',
+    'Lentes de Sol',
+    'Almohada',
+    'Billetera',
+    'Reloj',
+    'Audifonos',
+    'Playa',
+    'Aeroupuerto',
+    'Doctor',
+    'Bombero',
+    'Chef',
+    'Plomero',
+    'Astronauta',
+    'Bartender',
+    'Veterinario',
+  ],
   'Todas juntas 🎲': [
     'Breaking Bad','Game of Thrones','Friends','Stranger Things','The Office',
     'Avatar','Titanic','El Padrino','Matrix','Toy Story','El Rey León','Forrest Gump',
@@ -4254,6 +4320,62 @@ const IMP_WORDS = {
     'Netflix','Disney','YouTube','TikTok','Instagram','Lamborghini','Toyota','BMW','Mercedes-Benz',
     'Torre Eiffel','Estatua de la Libertad','Machu Picchu','Central Park','Hollywood',
     'Fútbol','Básquet','Tenis',
+    'Cabo Verde',
+    'Johnny Deep',
+    'Guillermo Franchella',
+    'Ricardo Darín',
+    'Conejo',
+    'Caballo',
+    'Café',
+    'Chocolate',
+    'Pochoclos',
+    'Monsters INC',
+    'La Bella y la Bestia',
+    'Buscando a Nemo',
+    'Shrek',
+    'La Era del Hielo',
+    'Piratas del Caribe',
+    'Rápidos y Furiosos',
+    'Microsoft',
+    'Starbucks',
+    'Amazon',
+    'Toblerone',
+    'Pepsi',
+    'VISA',
+    'MasterCard',
+    'Torre de Pizza',
+    'Piramides de Giza',
+    'Muralla China',
+    'London Eye',
+    'Empire State',
+    'Cataratas del Iguazu',
+    'Vaticano',
+    'Times Square',
+    'Surf',
+    'Tiro con Arco',
+    'Esgrima',
+    'Criquet',
+    'Hockey',
+    'Ping Pong',
+    'Fútbol Americano',
+    'Tijeras',
+    'Ducha',
+    'Celular',
+    'Cepillo de Dientes',
+    'Lentes de Sol',
+    'Almohada',
+    'Billetera',
+    'Reloj',
+    'Audifonos',
+    'Playa',
+    'Aeroupuerto',
+    'Doctor',
+    'Bombero',
+    'Chef',
+    'Plomero',
+    'Astronauta',
+    'Bartender',
+    'Veterinario',
   ],
 };
 
@@ -4305,6 +4427,16 @@ function saveImpGame() {
     failedVotes: impGame.failedVotes || 0,
   };
   saveState();
+  // También persistir palabras custom en Firebase (sobreviven actualizaciones del archivo)
+  if (window._fbReady) {
+    const impWords = {
+      customCatWords: impGame.customCatWords || {},
+      userCats: impGame.userCats || [],
+      customWords: impGame.customWords || [],
+      excludedWords: impGame.excludedWords || [],
+    };
+    window._fbWrite('imp_words', JSON.stringify(impWords));
+  }
 }
 
 // Llamado una vez al cargar la página, después de loadState(), para retomar
@@ -8053,6 +8185,63 @@ restoreImpGame();
 renderReglas();
 activateTab(state.lastTab || 'reglas');
 updateNavProgress();
+
+// Cargar palabras custom del impostor desde Firebase al arrancar
+// Esto asegura que las palabras sobrevivan actualizaciones del archivo HTML
+(function loadImpWordsFromFirebase() {
+  function mergeImpWords(fbData) {
+    try {
+      const parsed = JSON.parse(fbData);
+      // Fusionar customCatWords
+      if (parsed.customCatWords) {
+        impGame.customCatWords = impGame.customCatWords || {};
+        for (const [cat, words] of Object.entries(parsed.customCatWords)) {
+          if (!impGame.customCatWords[cat]) impGame.customCatWords[cat] = [];
+          for (const w of words) {
+            if (!impGame.customCatWords[cat].includes(w)) impGame.customCatWords[cat].push(w);
+          }
+        }
+      }
+      // Fusionar userCats
+      if (Array.isArray(parsed.userCats)) {
+        impGame.userCats = impGame.userCats || [];
+        for (const c of parsed.userCats) {
+          if (!impGame.userCats.includes(c)) impGame.userCats.push(c);
+        }
+      }
+      // Fusionar customWords
+      if (Array.isArray(parsed.customWords)) {
+        impGame.customWords = impGame.customWords || [];
+        for (const w of parsed.customWords) {
+          if (!impGame.customWords.includes(w)) impGame.customWords.push(w);
+        }
+      }
+      // Fusionar excludedWords
+      if (Array.isArray(parsed.excludedWords)) {
+        impGame.excludedWords = impGame.excludedWords || [];
+        for (const w of parsed.excludedWords) {
+          if (!impGame.excludedWords.includes(w)) impGame.excludedWords.push(w);
+        }
+      }
+      saveImpGame();
+      // Si el usuario está en la pestaña impostor, re-renderizar
+      if (document.querySelector('.nav-tab[data-tab="impostor"]')?.classList.contains('active')) {
+        renderImpostor();
+      }
+      console.log('Palabras del impostor cargadas desde Firebase ✓');
+    } catch(e) { console.warn('Error al fusionar palabras de Firebase:', e); }
+  }
+
+  function tryLoad() {
+    if (window._fbReady && window._fbRead) {
+      window._fbRead('imp_words').then(data => { if (data) mergeImpWords(data); });
+    } else {
+      // Firebase todavía no está listo, reintentamos en 1s
+      setTimeout(tryLoad, 1000);
+    }
+  }
+  setTimeout(tryLoad, 500);
+})();
 
 // ============================================================
 // SPLASH / PANTALLA DE INICIO

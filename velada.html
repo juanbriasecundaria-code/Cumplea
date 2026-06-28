@@ -324,8 +324,35 @@
   .empate-btn:hover { border-color: var(--info); color: var(--info); }
   .empate-btn.selected { border-color: var(--info); color: var(--info); background: rgba(96,180,240,0.08); }
 
-  /* IMPOSTOR */
-  .impostor-card {
+  /* FIXTURE EDITOR */
+  .fixture-edit-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    margin-bottom: 0.25rem;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+  }
+  .fixture-edit-select {
+    flex: 1; padding: 0.4rem 0.55rem;
+    border-radius: var(--radius); border: 1px solid var(--border2);
+    background: var(--surface); color: var(--text); font-size: 12px;
+    min-width: 0;
+  }
+  .fixture-edit-vs { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+  .fixture-edit-save {
+    padding: 0.35rem 0.75rem; border-radius: var(--radius);
+    border: none; background: var(--accent); color: #0f0f13;
+    font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+  }
+  .fixture-edit-toggle {
+    font-size: 11px; padding: 2px 8px; border-radius: 99px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--muted); cursor: pointer; margin-left: auto;
+  }
+  .fixture-edit-toggle.active { border-color: var(--accent); color: var(--accent); }
+
+
     border: 1.5px solid rgba(200,240,96,0.2);
   }
   .impostor-result-grid {
@@ -1929,6 +1956,100 @@ body.started .velada-bg-scrim { display: block; }
 .op-dot.active { background: var(--gold); transform: scale(1.25); }
 .op-progress.done .op-dot { background: var(--accent); }
 
+/* ── Ceremonia v3: reveal por fases ── */
+
+/* Fondo que respira con el color del item */
+#opening::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 60% 55% at 50% 55%, var(--flash, transparent), transparent 72%);
+  opacity: 0; transition: opacity 1.2s ease;
+}
+#opening.op-bg-on::after { opacity: 0.18; }
+
+.op-card { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+/* Número grande arriba */
+.op-num-block {
+  display: flex; align-items: baseline; gap: 4px; margin-bottom: 0.1rem;
+  opacity: 0; transform: translateY(-16px) scale(0.85);
+  animation: opNumIn 0.55s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes opNumIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.op-num-n {
+  font-size: clamp(3.5rem, 16vw, 6rem); font-weight: 900; line-height: 0.9;
+  letter-spacing: -0.04em; color: var(--team);
+  text-shadow: 0 0 60px color-mix(in srgb, var(--team) 70%, transparent);
+}
+.op-num-total {
+  font-size: clamp(1rem, 4vw, 1.5rem); color: rgba(255,255,255,0.25);
+  font-weight: 800; letter-spacing: -0.02em;
+}
+
+/* Figura Mii — entra desde abajo después del número */
+.op-fig {
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--team) 55%, transparent));
+  margin-bottom: 0;
+  opacity: 0; transform: translateY(40px) scale(0.88);
+  transition: opacity 0.55s cubic-bezier(.22,1,.36,1), transform 0.55s cubic-bezier(.22,1,.36,1);
+}
+.op-fig.visible { opacity: 1; transform: translateY(0) scale(1); }
+.op-fig svg { display: block; }
+
+/* Nombre — aparece con scale + fade después de la figura */
+.op-names {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 0.5rem 0 0.15rem;
+  opacity: 0; transform: scale(0.92);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.22,1,.36,1);
+}
+.op-names.visible { opacity: 1; transform: scale(1); }
+.op-member {
+  font-size: clamp(1.6rem, 7vw, 2.6rem); font-weight: 800; line-height: 1.05;
+  color: var(--team);
+  text-shadow: 0 2px 30px color-mix(in srgb, var(--team) 50%, transparent);
+  letter-spacing: -0.01em;
+}
+.op-amp { font-size: clamp(0.9rem, 3vw, 1.1rem); color: var(--muted); font-weight: 600; line-height: 1; margin: 0.05rem 0; }
+
+/* Tag chico debajo del nombre */
+.op-label-tag {
+  font-size: clamp(9px, 2.3vw, 11px); font-weight: 700; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 99px;
+  padding: 0.25rem 0.85rem; margin-top: 0.4rem;
+  background: rgba(255,255,255,0.03);
+  opacity: 0; transition: opacity 0.4s ease 0.1s;
+}
+.op-label-tag.visible { opacity: 1; }
+
+/* Barra coloreada */
+.op-bar {
+  width: 56px; height: 3px; border-radius: 4px; margin-top: 0.9rem;
+  background: var(--team); box-shadow: 0 0 14px var(--team);
+  opacity: 0; transform: scaleX(0);
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(.22,1,.36,1);
+}
+.op-bar.visible { opacity: 1; transform: scaleX(1); }
+
+/* Hint "tocá" */
+.op-hint {
+  position: relative; z-index: 1;
+  font-size: 11px; color: rgba(255,255,255,0.2); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-top: 0.6rem;
+  opacity: 0; transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+/* Progress dots */
+.op-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15);
+  transition: background 0.35s ease, transform 0.35s ease, width 0.35s ease; }
+.op-dot.active { background: var(--team); transform: scale(1.3); }
+.op-dot.current { width: 18px; border-radius: 4px; background: var(--team); box-shadow: 0 0 8px var(--team); }
+.op-progress.done .op-dot { background: var(--accent); }
+
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
   text-transform: uppercase; font-size: clamp(10px, 2.8vw, 13px); margin-bottom: 1.4rem; text-align: center;
@@ -2049,6 +2170,7 @@ body.started .velada-bg-scrim { display: block; }
             <th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th>
             <th title="Puntos especiales (Impostor)">Esp.</th>
             <th title="Bonus previo (Kahoot u otras actividades)">🎯</th>
+            <th id="th-vsjc" title="Resultado vs Juan Cruz" style="cursor:pointer;white-space:nowrap;color:var(--info)" onclick="toggleVsJCEdit()">vs JC ✏️</th>
             <th style="text-align:right">Total</th>
           </tr>
         </thead>
@@ -2470,6 +2592,11 @@ function renderReglas() {
       <div class="rules-hero-sub">Todo lo que hay que saber antes de jugar: estructura de la noche, sistema de puntos y las reglas de cada estación.</div>
     </div>
 
+    <div class="card" style="text-align:center;border-color:rgba(96,180,240,0.3)">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Presentá uno por uno a los concursantes de la Fase 1.</div>
+      <button class="final-end-btn" style="border-color:rgba(96,180,240,0.6);color:var(--info)" onclick="openPlayerCeremony()">🎤 Presentar a los concursantes</button>
+    </div>
+
     <div class="card" style="text-align:center;border-color:rgba(245,200,66,0.3)">
       <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Antes de arrancar, presentá a los equipos en pantalla grande.</div>
       <button class="final-end-btn" onclick="openCeremony()">🎤 Presentar a los equipos</button>
@@ -2847,7 +2974,7 @@ function generateF2Fixture(n) {
 function regenerateF1Fixture() {
   const { fixture, byes } = generateF1Fixture(PLAYERS.length);
   F1_FIXTURE = fixture;
-  F1_BYES = byes;
+  F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
 }
 
 function regenerateF2Fixture() {
@@ -2870,7 +2997,7 @@ function restoreRosterAndFixtures() {
   }
   if (state.f1FixtureSnapshot) {
     F1_FIXTURE = state.f1FixtureSnapshot.fixture;
-    F1_BYES = state.f1FixtureSnapshot.byes;
+    F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
   }
   if (state.f2FixtureSnapshot) {
     F2_FIXTURE = state.f2FixtureSnapshot.fixture;
@@ -2882,7 +3009,7 @@ function resetRosterAndFixtures() {
   PLAYERS.length = 0; ORIGINAL_PLAYERS.forEach(n => PLAYERS.push(n));
   TEAMS.length = 0; ORIGINAL_TEAMS.forEach(n => TEAMS.push(n));
   F1_FIXTURE = ORIGINAL_F1_FIXTURE.map(m => m.slice());
-  F1_BYES = Object.assign({}, ORIGINAL_F1_BYES);
+  F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
   F2_FIXTURE = ORIGINAL_F2_FIXTURE.map(m => m.slice());
   F2_BYES = Object.assign({}, ORIGINAL_F2_BYES);
   state.playersSnapshot = null;
@@ -2965,10 +3092,13 @@ function renderF1RosterAdmin() {
       const photoBtn = photo
         ? `<button onclick="removePlayerPhoto('${p.replace(/'/g,"\\'")}');renderF1RosterAdmin();renderFase1();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
         : `<button onclick="triggerPhotoUpload('${p.replace(/'/g,"\\'")}','f1');" title="Agregar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:13px;line-height:1;color:var(--muted)" title="Subir foto">📷</button>`;
+      const f1Color = getEntityColor(p);
+      const f1ColorBtn = `<button onclick="openColorPicker('${p.replace(/'/g,"\\'")}','f1',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f1Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f1Color?'0 0 8px '+f1Color+'66':'none'}">🎨</button>`;
       return `
       <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem">
         <span style="font-size:11px;font-weight:600;color:var(--accent);min-width:18px;text-align:right">${i+1}</span>
         ${photoBtn}
+        ${f1ColorBtn}
         <input
           id="f1-name-${i}"
           type="text"
@@ -3080,10 +3210,13 @@ function renderF2RosterAdmin() {
     const photoBtn = photo
       ? `<button onclick="removePlayerPhoto('${t.replace(/'/g,"\\'")}');renderF2RosterAdmin();renderFase2();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
       : `<button onclick="triggerPhotoUpload('${t.replace(/'/g,"\\'")}','f2');" title="Agregar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:13px;line-height:1;color:var(--muted)">📷</button>`;
+    const f2Color = getEntityColor(t);
+    const f2ColorBtn = `<button onclick="openColorPicker('${t.replace(/'/g,"\\'")}','f2',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f2Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f2Color?'0 0 8px '+f2Color+'66':'none'}">🎨</button>`;
     return `
     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem">
       <span style="font-size:11px;font-weight:600;color:var(--info);min-width:18px;text-align:right">${i+1}</span>
       ${photoBtn}
+      ${f2ColorBtn}
       <input
         id="f2-name-${i}"
         type="text"
@@ -3149,7 +3282,19 @@ let F1_FIXTURE = [
 ];
 
 // Jugador que descansa en cada ronda (idx en PLAYERS), ronda 1-6
-let F1_BYES = { 1:0, 2:9, 3:7, 4:5, 5:3, 6:1 };
+// Se computa dinámicamente del fixture: el jugador que no aparece en ningún partido de esa ronda.
+function computeF1Byes(fixture, numPlayers) {
+  const byes = {};
+  for (let r = 1; r <= 6; r++) {
+    const inRound = new Set();
+    fixture.filter(m => m[0] === r).forEach(([,a,b]) => { inRound.add(a); inRound.add(b); });
+    for (let idx = 0; idx < numPlayers; idx++) {
+      if (!inRound.has(idx)) { byes[r] = idx; break; }
+    }
+  }
+  return byes;
+}
+let F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
 
 // Fixture fase 2
 // 6 equipos, 6 rondas, 3 partidos por ronda (todos juegan siempre).
@@ -3197,6 +3342,7 @@ let state = {
   impGame: null, // persisted snapshot of in-progress impGame (setup/cards/result)
   lastTab: null, // last tab viewed, restored on reload
   bonusManual: {}, // key: playerName => {pts: number, label: string}
+  vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
 };
 
 // Load from localStorage
@@ -3375,8 +3521,15 @@ function getPlayerPoints() {
     }
   });
 
+  // vs JC — victoria = 3 pts, derrota = 0
+  const vsJC = state.vsJC || {};
+  PLAYERS.forEach((name, idx) => {
+    const val = vsJC[name];
+    pts[idx].vsJC = (typeof val === 'number') ? val : null;
+  });
+
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0);
   });
   return pts;
 }
@@ -3499,6 +3652,33 @@ function saveBonusManual() {
 }
 
 // ============================================================
+// VS JC — columna de resultado contra Juan Cruz
+// ============================================================
+let _vsJCEditMode = false;
+
+function toggleVsJCEdit() {
+  _vsJCEditMode = !_vsJCEditMode;
+  const th = document.getElementById('th-vsjc');
+  if (th) {
+    th.textContent = _vsJCEditMode ? 'vs JC ✓' : 'vs JC ✏️';
+    th.style.color = _vsJCEditMode ? 'var(--accent)' : 'var(--info)';
+  }
+  renderFase1();
+}
+
+function setVsJC(playerName, value) {
+  if (!state.vsJC) state.vsJC = {};
+  const num = parseInt(value, 10);
+  if (value === '' || value === null || isNaN(num)) {
+    delete state.vsJC[playerName];
+  } else {
+    state.vsJC[playerName] = num;
+  }
+  saveState();
+  renderFase1();
+}
+
+// ============================================================
 // RENDER FASE 1
 // ============================================================
 function renderFase1() {
@@ -3537,12 +3717,28 @@ function renderFase1() {
     const bmCell = bm
       ? `<td class="round-pts bonus" title="Bonus previo: +${bm} pts">+${bm}</td>`
       : `<td class="round-pts pending">—</td>`;
+    const vsJCval = pts.vsJC;
+    const vsJCSafe = n.replace(/'/g,"\\'");
+    const vsJCCell = _vsJCEditMode
+      ? `<td style="padding:2px 4px">
+          <input
+            type="number" min="0" step="1"
+            value="${vsJCval !== null ? vsJCval : ''}"
+            placeholder="—"
+            onchange="setVsJC('${vsJCSafe}', this.value)"
+            style="width:46px;padding:3px 5px;border-radius:6px;border:1px solid var(--info);background:var(--surface2);color:var(--info);font-size:12px;font-weight:700;text-align:center"
+          >
+        </td>`
+      : vsJCval !== null
+        ? `<td class="round-pts ${vsJCval > 0 ? 'win' : ''}">${vsJCval}</td>`
+        : `<td class="round-pts pending">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name">${n}</td>
       ${rounds}
       ${special}
       ${bmCell}
+      ${vsJCCell}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
   }).join('');
@@ -3553,14 +3749,72 @@ function renderFase1() {
   renderPodium('podium-fase1', sorted, 'f1');
 }
 
+// ============================================================
+// FIXTURE EDITOR — F1 y F2
+// ============================================================
+let _fixtureEditMode = { f1: false, f2: false };
+
+function toggleFixtureEdit(phase) {
+  _fixtureEditMode[phase] = !_fixtureEditMode[phase];
+  if (phase === 'f1') renderFixtureF1();
+  else renderFixtureF2();
+}
+
+function saveFixtureMatch(phase, matchIdx, selectA, selectB, selectG) {
+  const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+  const newA = parseInt(selectA.value);
+  const newB = parseInt(selectB.value);
+  const newG = parseInt(selectG.value);
+  if (isNaN(newA) || isNaN(newB) || isNaN(newG) || newA === newB) {
+    showToast('⚠️', 'Jugadores distintos en cada lado', false);
+    return;
+  }
+  const match = fixture[matchIdx];
+  const oldKey = `${match[0]}-${match[1]}-${match[2]}`;
+  // Update fixture entry
+  match[1] = newA;
+  match[2] = newB;
+  match[3] = newG;
+  // Remove old result if players changed
+  const newKey = `${match[0]}-${newA}-${newB}`;
+  if (oldKey !== newKey) {
+    const store = phase === 'f1' ? state.f1 : state.f2;
+    if (store[oldKey]) { delete store[oldKey]; }
+  }
+  // Recompute byes for F1
+  if (phase === 'f1') {
+    F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+    state.f1FixtureSnapshot = { fixture: F1_FIXTURE, byes: F1_BYES };
+  } else {
+    state.f2FixtureSnapshot = { fixture: F2_FIXTURE, byes: F2_BYES };
+  }
+  saveState();
+  showToast('✓', 'Enfrentamiento actualizado', false);
+  if (phase === 'f1') renderFase1();
+  else renderFase2();
+}
+
 function renderFixtureF1() {
   const container = document.getElementById('fixture-fase1');
+  const editing = _fixtureEditMode['f1'];
   let html = '';
+
+  // Edit toggle button header
+  const canEdit = Object.keys(state.f1).length === 0;
+  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+    <span style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Fixture</span>
+    ${canEdit
+      ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f1')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
+      : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
+    }
+  </div>`;
+
   for (let r = 1; r <= 6; r++) {
     const matches = F1_FIXTURE.filter(m => m[0] === r);
     const byeIdx = F1_BYES[r];
     const byeTag = byeIdx !== undefined ? `<span class="bye-tag">😴 Descansa: ${PLAYERS[byeIdx]}</span>` : '';
     html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag}</div>`;
+
     matches.forEach(([round, a, b, g]) => {
       const key = `${round}-${a}-${b}`;
       const res = state.f1[key];
@@ -3568,24 +3822,40 @@ function renderFixtureF1() {
       const [gbg, gcol] = GAME_COLORS_F1[g] || ['var(--surface2)', 'var(--muted)'];
       const pA = PLAYERS[a] || '?';
       const pB = PLAYERS[b] || '?';
-      let resultText = '';
-      if (res) {
-        if (res.winner === 'empate') resultText = 'Empate';
-        else {
-          const w = PLAYERS[res.winner] || '?';
-          resultText = `✓ ${w.split(' ')[0]}${res.bonus ? ' +bonus' : ''}`;
+      const matchIdx = F1_FIXTURE.indexOf(F1_FIXTURE.find(m => m[0]===round && m[1]===a && m[2]===b));
+
+      if (editing && canEdit) {
+        const playerOpts = PLAYERS.map((p,pi) => `<option value="${pi}" ${pi===a?'selected':''}>${p}</option>`).join('');
+        const playerOptsB = PLAYERS.map((p,pi) => `<option value="${pi}" ${pi===b?'selected':''}>${p}</option>`).join('');
+        const gameOpts = GAMES_F1.map((gn,gi) => `<option value="${gi}" ${gi===g?'selected':''}>${gn}</option>`).join('');
+        html += `<div class="fixture-edit-row">
+          <select class="fixture-edit-select" id="fe1-a-${matchIdx}">${playerOpts}</select>
+          <span class="fixture-edit-vs">vs</span>
+          <select class="fixture-edit-select" id="fe1-b-${matchIdx}">${playerOptsB}</select>
+          <select class="fixture-edit-select" style="max-width:130px" id="fe1-g-${matchIdx}">${gameOpts}</select>
+          <button class="fixture-edit-save" onclick="saveFixtureMatch('f1',${matchIdx},document.getElementById('fe1-a-${matchIdx}'),document.getElementById('fe1-b-${matchIdx}'),document.getElementById('fe1-g-${matchIdx}'))">✓</button>
+        </div>`;
+      } else {
+        let resultText = '';
+        if (res) {
+          if (res.winner === 'empate') resultText = 'Empate';
+          else {
+            const w = PLAYERS[res.winner] || '?';
+            resultText = `✓ ${w.split(' ')[0]}${res.bonus ? ' +bonus' : ''}`;
+          }
         }
+        html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f1','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${pA.replace(/'/g,"\\'")}','${pB.replace(/'/g,"\\'")}',${a},${b})">
+          <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
+          <span class="match-players">${pA.split(' ')[0]} vs ${pB.split(' ')[0]}</span>
+          <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
+        </div>`;
       }
-      html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f1','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${pA.replace(/'/g,"\\'")}','${pB.replace(/'/g,"\\'")}',${a},${b})">
-        <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
-        <span class="match-players">${pA.split(' ')[0]} vs ${pB.split(' ')[0]}</span>
-        <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
-      </div>`;
     });
     html += '</div>';
   }
-  container.innerHTML = html;
+  container.innerHTML = toggleHtml + html;
 }
+
 
 // ============================================================
 // SUDDEN DEATH — Fase 1
@@ -3824,6 +4094,17 @@ function renderFase2() {
 
 function renderFixtureF2() {
   const container = document.getElementById('fixture-fase2');
+  const editing = _fixtureEditMode['f2'];
+  const canEdit = Object.keys(state.f2).length === 0;
+
+  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+    <span style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Fixture</span>
+    ${canEdit
+      ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f2')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
+      : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
+    }
+  </div>`;
+
   let html = '';
   for (let r = 1; r <= 6; r++) {
     const matches = F2_FIXTURE.filter(m => m[0] === r);
@@ -3837,23 +4118,38 @@ function renderFixtureF2() {
       const [gbg, gcol] = GAME_COLORS_F2[g] || ['var(--surface2)', 'var(--muted)'];
       const tA = TEAMS[a];
       const tB = TEAMS[b];
-      let resultText = '';
-      if (res) {
-        if (res.winner === 'empate') resultText = 'Empate';
-        else {
-          const w = TEAMS[res.winner] || '?';
-          resultText = `✓ ${w.split('/')[0].trim()}${res.bonus ? ' +bonus' : ''}`;
+      const matchIdx = F2_FIXTURE.indexOf(F2_FIXTURE.find(m => m[0]===round && m[1]===a && m[2]===b));
+
+      if (editing && canEdit) {
+        const teamOptsA = TEAMS.map((t,ti) => `<option value="${ti}" ${ti===a?'selected':''}>${t.split('/')[0].trim()}</option>`).join('');
+        const teamOptsB = TEAMS.map((t,ti) => `<option value="${ti}" ${ti===b?'selected':''}>${t.split('/')[0].trim()}</option>`).join('');
+        const gameOpts = GAMES_F2.map((gn,gi) => `<option value="${gi}" ${gi===g?'selected':''}>${gn}</option>`).join('');
+        html += `<div class="fixture-edit-row">
+          <select class="fixture-edit-select" id="fe2-a-${matchIdx}">${teamOptsA}</select>
+          <span class="fixture-edit-vs">vs</span>
+          <select class="fixture-edit-select" id="fe2-b-${matchIdx}">${teamOptsB}</select>
+          <select class="fixture-edit-select" style="max-width:140px" id="fe2-g-${matchIdx}">${gameOpts}</select>
+          <button class="fixture-edit-save" style="background:var(--info);color:#0f0f13" onclick="saveFixtureMatch('f2',${matchIdx},document.getElementById('fe2-a-${matchIdx}'),document.getElementById('fe2-b-${matchIdx}'),document.getElementById('fe2-g-${matchIdx}'))">✓</button>
+        </div>`;
+      } else {
+        let resultText = '';
+        if (res) {
+          if (res.winner === 'empate') resultText = 'Empate';
+          else {
+            const w = TEAMS[res.winner] || '?';
+            resultText = `✓ ${w.split('/')[0].trim()}${res.bonus ? ' +bonus' : ''}`;
+          }
         }
+        html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f2','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${tA.replace(/'/g,"\\'")}','${tB.replace(/'/g,"\\'")}',${a},${b})">
+          <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
+          <span class="match-players" style="font-size:12px">${tA.split('/')[0].trim()} vs ${tB.split('/')[0].trim()}</span>
+          <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
+        </div>`;
       }
-      html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f2','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${tA.replace(/'/g,"\\'")}','${tB.replace(/'/g,"\\'")}',${a},${b})">
-        <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
-        <span class="match-players" style="font-size:12px">${tA.split('/')[0].trim()} vs ${tB.split('/')[0].trim()}</span>
-        <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
-      </div>`;
     });
     html += '</div>';
   }
-  container.innerHTML = html;
+  container.innerHTML = toggleHtml + html;
 }
 
 // ============================================================
@@ -5625,6 +5921,118 @@ function removePlayerPhoto(name) {
 }
 loadPlayerPhotos();
 
+// ── COLORES CUSTOM POR ENTIDAD (player / team) ──
+const COLOR_PRESETS = [
+  '#60b4f0','#e84040','#c8f060','#c060e8','#f5c842','#3aaa68',
+  '#e8903a','#ff7eb6','#ffffff','#a0c4ff','#ff9f43','#54a0ff',
+  '#5f27cd','#01cbc6','#ff6b6b','#feca57',
+];
+let _entityColors = {};
+function loadEntityColors() {
+  try { _entityColors = JSON.parse(localStorage.getItem('ndj_colors') || '{}'); } catch(e) { _entityColors = {}; }
+}
+function saveEntityColors() {
+  try { localStorage.setItem('ndj_colors', JSON.stringify(_entityColors)); } catch(e) {}
+}
+function getEntityColor(name) { return _entityColors[name] || null; }
+function setEntityColor(name, color) { _entityColors[name] = color; saveEntityColors(); }
+function removeEntityColor(name) { delete _entityColors[name]; saveEntityColors(); }
+loadEntityColors();
+
+// Devuelve el color efectivo: custom si hay, sino la paleta por índice
+function entityColor(name, idx) {
+  return getEntityColor(name) || teamColor(idx);
+}
+
+// Popover de selección de color
+let _colorPopoverClose = null;
+function openColorPicker(entityName, phase, anchorEl) {
+  // Cerrar cualquier popover previo
+  if (_colorPopoverClose) { _colorPopoverClose(); _colorPopoverClose = null; }
+
+  const current = getEntityColor(entityName) || '';
+  const pop = document.createElement('div');
+  pop.style.cssText = [
+    'position:fixed;z-index:99999;',
+    'background:var(--surface2);border:1px solid var(--border2);',
+    'border-radius:12px;padding:0.85rem;',
+    'box-shadow:0 8px 40px rgba(0,0,0,0.55);',
+    'width:220px;',
+  ].join('');
+
+  // Position near anchor
+  const rect = anchorEl.getBoundingClientRect();
+  const top = Math.min(rect.bottom + 6, window.innerHeight - 260);
+  const left = Math.min(rect.left, window.innerWidth - 228);
+  pop.style.top  = top  + 'px';
+  pop.style.left = left + 'px';
+
+  const swatchesHtml = COLOR_PRESETS.map(function(c) {
+    const sel = c === current ? 'outline:2px solid #fff;outline-offset:2px;' : '';
+    return '<div onclick="__cpPick(this,\'' + c + '\')" style="width:24px;height:24px;border-radius:6px;background:' + c + ';cursor:pointer;flex-shrink:0;' + sel + '" data-color="' + c + '"></div>';
+  }).join('');
+
+  pop.innerHTML =
+    '<div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem">Color de ' + _escC(entityName) + '</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.75rem">' + swatchesHtml + '</div>'
+    + '<div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.65rem">'
+    +   '<div id="__cp_preview" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:' + (current||'transparent') + ';flex-shrink:0"></div>'
+    +   '<input id="__cp_hex" type="text" placeholder="#rrggbb" maxlength="7" value="' + current + '" '
+    +     'style="flex:1;padding:0.4rem 0.6rem;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:monospace" '
+    +     'oninput="__cpHexInput(this)">'
+    + '</div>'
+    + '<div style="display:flex;gap:0.4rem">'
+    +   '<button onclick="__cpApply(\'' + entityName.replace(/'/g,"\'") + '\',\'' + phase + '\')" style="flex:1;padding:0.5rem;border-radius:8px;border:none;background:var(--accent);color:#111;font-weight:700;font-size:13px;cursor:pointer">Aplicar</button>'
+    +   (current ? '<button onclick="__cpReset(\'' + entityName.replace(/'/g,"\'") + '\',\'' + phase + '\')" style="padding:0.5rem 0.75rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:12px;cursor:pointer">Reset</button>' : '')
+    + '</div>';
+
+  document.body.appendChild(pop);
+
+  // Global helpers for the inline handlers
+  window.__cpPick = function(el, color) {
+    pop.querySelectorAll('[data-color]').forEach(function(d) { d.style.outline = ''; });
+    el.style.outline = '2px solid #fff'; el.style.outlineOffset = '2px';
+    document.getElementById('__cp_hex').value = color;
+    document.getElementById('__cp_preview').style.background = color;
+  };
+  window.__cpHexInput = function(inp) {
+    const v = inp.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      document.getElementById('__cp_preview').style.background = v;
+      pop.querySelectorAll('[data-color]').forEach(function(d) { d.style.outline = ''; });
+    }
+  };
+  window.__cpApply = function(name, ph) {
+    const v = document.getElementById('__cp_hex').value.trim();
+    if (!/^#[0-9a-fA-F]{3,6}$/.test(v)) return;
+    setEntityColor(name, v);
+    closePop();
+    if (ph === 'f2') { renderF2RosterAdmin(); renderFase2(); }
+    else { renderF1RosterAdmin(); renderFase1(); }
+  };
+  window.__cpReset = function(name, ph) {
+    removeEntityColor(name);
+    closePop();
+    if (ph === 'f2') { renderF2RosterAdmin(); renderFase2(); }
+    else { renderF1RosterAdmin(); renderFase1(); }
+  };
+
+  function closePop() {
+    if (pop.parentNode) pop.parentNode.removeChild(pop);
+    document.removeEventListener('mousedown', outsideClick);
+    document.removeEventListener('touchstart', outsideClick);
+    _colorPopoverClose = null;
+  }
+  function outsideClick(e) {
+    if (!pop.contains(e.target) && e.target !== anchorEl) closePop();
+  }
+  setTimeout(function() {
+    document.addEventListener('mousedown', outsideClick);
+    document.addEventListener('touchstart', outsideClick);
+  }, 50);
+  _colorPopoverClose = closePop;
+}
+
 function triggerPhotoUpload(entityName, phase) {
   const inp = document.createElement('input');
   inp.type = 'file';
@@ -5883,7 +6291,7 @@ function renderPodium(containerId, sorted, phase) {
     const entry = sorted[pos];
     const name  = entry ? entry.n.split(' ')[0] : null;
     const pts   = entry ? entry.pts.total : 0;
-    const color = colors[slotIdx];
+    const color = entry ? (entityColor(entry.n, entry.i) || colors[slotIdx]) : colors[slotIdx];
     const photo = entry ? getPlayerPhoto(entry.n) : null;
     const fig   = entry ? miiFigureSVG(color, figSizes[slotIdx], poses[slotIdx], photo) : '';
     const isFirst = slotIdx === 1;
@@ -6036,6 +6444,111 @@ function playSaveSound() {
 function playUndoSound() {
   playTone(440, 'sine', 0.12, 0.1, 0);
   playTone(330, 'sine', 0.10, 0.08, 0.1);
+}
+
+// ── SONIDOS DE CEREMONIA ──
+
+// Fase 1: golpe seco al aparecer el número — kick + sub-bass corto
+function cerSndNumber() {
+  try {
+    const ctx = getAudioCtx(); const t = ctx.currentTime;
+    // Sub-bass punch
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(90, t);
+    osc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+    g.gain.setValueAtTime(0.55, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.23);
+    // Click transient de ataque
+    const src = ctx.createBufferSource();
+    src.buffer = _noiseBuffer(ctx, 0.025);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 0.6;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.38, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+    src.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+    src.start(t); src.stop(t + 0.03);
+  } catch(e) {}
+}
+
+// Fase 2: swoosh ascendente cuando la figura sube
+function cerSndFigure() {
+  try {
+    const ctx = getAudioCtx(); const t = ctx.currentTime;
+    // Ruido filtrado que sube (highpass sweep)
+    const src = ctx.createBufferSource();
+    src.buffer = _noiseBuffer(ctx, 0.22);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass';
+    hp.frequency.setValueAtTime(400, t);
+    hp.frequency.exponentialRampToValueAtTime(3800, t + 0.18);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0, t);
+    g.gain.linearRampToValueAtTime(0.22, t + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    src.connect(hp); hp.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + 0.23);
+    // Tono suave de acompañamiento
+    const osc = ctx.createOscillator(); const og = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(320, t);
+    osc.frequency.linearRampToValueAtTime(520, t + 0.18);
+    og.gain.setValueAtTime(0.09, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.connect(og); og.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.26);
+  } catch(e) {}
+}
+
+// Fase 3: chime metálico cuando aparece el nombre — el momento "ta-dá" elegante
+function cerSndName(teamColor) {
+  try {
+    const ctx = getAudioCtx(); const t = ctx.currentTime;
+    // Dos parciales que forman un intervalo de quinta (suena "limpio" y brillante)
+    const freqs = [880, 1320, 1760];
+    const decays = [0.55, 0.42, 0.30];
+    freqs.forEach(function(freq, fi) {
+      const osc = ctx.createOscillator(); const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.13 - fi * 0.03, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + decays[fi]);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t + decays[fi] + 0.02);
+    });
+    // Sub-armónico suave para que tenga cuerpo
+    const sub = ctx.createOscillator(); const sg = ctx.createGain();
+    sub.type = 'sine'; sub.frequency.setValueAtTime(440, t);
+    sg.gain.setValueAtTime(0.10, t); sg.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    sub.connect(sg); sg.connect(ctx.destination);
+    sub.start(t); sub.stop(t + 0.42);
+  } catch(e) {}
+}
+
+// Final: swell ascendente que resuelve en acorde mayor
+function cerSndFinale() {
+  try {
+    const ctx = getAudioCtx(); const t = ctx.currentTime;
+    // Acorde Do mayor: Do4-Mi4-Sol4-Do5
+    [[261.6, 0], [329.6, 0.08], [392, 0.16], [523.2, 0.24]].forEach(function(pair) {
+      const freq = pair[0], delay = pair[1];
+      const osc = ctx.createOscillator(); const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + delay);
+      g.gain.setValueAtTime(0.0, t + delay);
+      g.gain.linearRampToValueAtTime(0.16, t + delay + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.1);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t + delay); osc.stop(t + delay + 1.15);
+    });
+    // Shimmer de ruido agudo
+    const src = ctx.createBufferSource(); src.buffer = _noiseBuffer(ctx, 0.8);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000;
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.0, t + 0.2);
+    g2.gain.linearRampToValueAtTime(0.12, t + 0.5);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+    src.connect(hp); hp.connect(g2); g2.connect(ctx.destination);
+    src.start(t + 0.2); src.stop(t + 0.9);
+  } catch(e) {}
 }
 
 // ============================================================
@@ -6697,79 +7210,194 @@ function closeCeremony(id) {
   }, 500);
 }
 
-// ── APERTURA: cada equipo entra con su color, uno por uno ──
-function openCeremony() {
+// ── CEREMONIA GENÉRICA v3: reveal en 3 fases por item ──
+function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti }) {
   const overlay = document.getElementById('opening');
-  if (!overlay || !TEAMS.length) return;
+  if (!overlay || !items.length) return;
   _resumeAudio();
   const reduce = _prefersReduce();
-  const TEAM_MS = 2600;
+
+  // Tiempos entre fases (ms): número → figura → nombre → pausa → siguiente
+  const T_FIG  = reduce ? 0   : 480;   // tras número, entra figura
+  const T_NAME = reduce ? 0   : 360;   // tras figura, entra nombre
+  const T_WAIT = reduce ? 800 : 2400;  // pausa con todo visible antes de auto-avanzar
 
   overlay.innerHTML =
-    '<button class="ceremony-close" onclick="closeCeremony(\'opening\')">✕ Salir</button>'
+    '<button class="ceremony-close" id="op-close-btn">✕ Salir</button>'
     + '<div class="op-stage" id="op-stage">'
-    + '  <div class="op-intro"><div class="op-eyebrow">Noche de juegos · Edición 2026</div>'
-    + '  <div class="op-bigtitle">Los equipos</div></div>'
+    + '  <div class="op-intro">'
+    + '    <div class="op-eyebrow">' + eyebrow + '</div>'
+    + '    <div class="op-bigtitle">' + title + '</div>'
+    + '  </div>'
     + '</div>'
     + '<div class="op-progress" id="op-progress">'
-    + TEAMS.map((_, i) => `<span class="op-dot" data-i="${i}"></span>`).join('')
-    + '</div>';
-  overlay.classList.remove('ceremony-out');
+    + items.map(function(_, i) { return '<span class="op-dot" data-i="' + i + '"></span>'; }).join('')
+    + '</div>'
+    + '<div class="op-hint" id="op-hint">Tocá para continuar</div>';
+
+  overlay.classList.remove('ceremony-out', 'op-bg-on');
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
 
   const stage = overlay.querySelector('#op-stage');
   const prog  = overlay.querySelector('#op-progress');
+  const hint  = overlay.querySelector('#op-hint');
+  const closeBtn = overlay.querySelector('#op-close-btn');
+  if (closeBtn) closeBtn.onclick = function(e) { e.stopPropagation(); closeCeremony('opening'); };
   let idx = -1;
+  let phase = 0;   // 0=intro 1=num-visible 2=fig-visible 3=todo-visible
+  let phaseTimers = [];
 
-  function showTeam(i) {
-    const name  = TEAMS[i];
-    const color = teamColor(i);
-    const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
-    const fig   = (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 120, i % 2 ? 'side' : 'victory', photo) : '';
-    const parts = String(name).split('/').map(s => s.trim()).filter(Boolean);
-    const namesHtml = parts.length > 1
-      ? parts.map(p => `<div class="op-member">${_escC(p)}</div>`).join('<div class="op-amp">&amp;</div>')
-      : `<div class="op-member">${_escC(name)}</div>`;
-    stage.innerHTML =
-      `<div class="op-card" style="--team:${color}">`
-      + `<div class="op-card-num">Equipo ${i + 1} de ${TEAMS.length}</div>`
-      + `<div class="op-fig">${fig}</div>`
-      + `<div class="op-names">${namesHtml}</div>`
-      + `<div class="op-bar"></div></div>`;
-    overlay.style.setProperty('--flash', color);
-    overlay.classList.remove('op-flash'); void overlay.offsetWidth; overlay.classList.add('op-flash');
-    if (!reduce) playDrumHit(0.34, 120 + i * 8);
-    if (navigator.vibrate) navigator.vibrate(40);
-    prog.querySelectorAll('.op-dot').forEach((d, di) => d.classList.toggle('active', di <= i));
+  function clearPhaseTimers() {
+    phaseTimers.forEach(function(t) { clearTimeout(t); });
+    phaseTimers = [];
+    if (_openingTimer) { clearTimeout(_openingTimer); _openingTimer = null; }
   }
 
-  function finishOpening() {
+  function showItem(i) {
+    clearPhaseTimers();
+    phase = 1;
+    hint.style.opacity = '0';
+
+    const name  = items[i];
+    const color = colorFn(i);
+    const label = labelFn(i, items.length);
+    const fig   = figFn(name, color, i);
+    const parts = String(name).split('/').map(function(s) { return s.trim(); }).filter(Boolean);
+    const fullName = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[name]) ? FULL_NAMES[name] : name;
+    const namesHtml = parts.length > 1
+      ? parts.map(function(p) {
+          const fn2 = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[p]) ? FULL_NAMES[p] : p;
+          return '<div class="op-member">' + _escC(fn2) + '</div>';
+        }).join('<div class="op-amp">&amp;</div>')
+      : '<div class="op-member">' + _escC(fullName) + '</div>';
+
+    // Flash de color + fondo respira
+    overlay.style.setProperty('--flash', color);
+    overlay.classList.remove('op-flash', 'op-bg-on');
+    void overlay.offsetWidth;
+    overlay.classList.add('op-flash', 'op-bg-on');
+    if (navigator.vibrate) navigator.vibrate(35);
+    if (!reduce) cerSndNumber();
+
+    // Dots: el actual tiene clase "current", los anteriores "active"
+    prog.querySelectorAll('.op-dot').forEach(function(d, di) {
+      d.classList.toggle('active', di < i);
+      d.classList.toggle('current', di === i);
+    });
+
+    stage.innerHTML =
+      '<div class="op-card" style="--team:' + color + '">'
+      + '<div class="op-num-block"><span class="op-num-n">' + (i + 1) + '</span><span class="op-num-total">&thinsp;/&thinsp;' + items.length + '</span></div>'
+      + '<div class="op-fig" id="op-fig-el">' + fig + '</div>'
+      + '<div class="op-names" id="op-names-el">' + namesHtml + '</div>'
+      + '<div class="op-label-tag" id="op-label-el">' + _escC(label) + '</div>'
+      + '<div class="op-bar" id="op-bar-el"></div>'
+      + '</div>';
+
+    // Fase 2: figura entra
+    phaseTimers.push(setTimeout(function() {
+      const el = stage.querySelector('#op-fig-el');
+      if (el) el.classList.add('visible');
+      if (!reduce) cerSndFigure();
+      phase = 2;
+    }, T_FIG));
+
+    // Fase 3: nombre, tag y barra
+    phaseTimers.push(setTimeout(function() {
+      ['#op-names-el','#op-label-el','#op-bar-el'].forEach(function(sel) {
+        const el = stage.querySelector(sel);
+        if (el) el.classList.add('visible');
+      });
+      if (!reduce) cerSndName();
+      phase = 3;
+      hint.style.opacity = '1';
+      _openingTimer = setTimeout(advance, T_WAIT);
+    }, T_FIG + T_NAME));
+  }
+
+  function skipToFull() {
+    clearPhaseTimers();
+    ['#op-fig-el','#op-names-el','#op-label-el','#op-bar-el'].forEach(function(sel) {
+      const el = stage.querySelector(sel);
+      if (el) el.classList.add('visible');
+    });
+    phase = 3;
+    hint.style.opacity = '1';
+    _openingTimer = setTimeout(advance, 1100);
+  }
+
+  function finishCeremony() {
+    clearPhaseTimers();
+    phase = 99;
+    hint.style.display = 'none';
+    overlay.classList.remove('op-bg-on');
+    prog.querySelectorAll('.op-dot').forEach(function(d) { d.classList.remove('current'); });
     stage.innerHTML =
       '<div class="op-outro">'
-      + '<div class="op-bigtitle" style="background:linear-gradient(105deg,var(--accent),#eaffa0 40%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent">¡Que empiece<br>La Velada!</div>'
-      + '<button class="op-cta" onclick="closeCeremony(\'opening\')">Entrar ▶</button>'
+      + '<div class="op-bigtitle" style="background:linear-gradient(105deg,var(--accent),#eaffa0 40%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent">' + finishTitle + '</div>'
+      + '<button class="op-cta" id="op-cta-btn">' + finishBtn + '</button>'
       + '</div>';
+    const ctaBtn = stage.querySelector('#op-cta-btn');
+    if (ctaBtn) ctaBtn.onclick = function(e) { e.stopPropagation(); closeCeremony('opening'); };
     prog.classList.add('done');
-    if (!reduce) { playPodiumSound(); playCymbal(0.22); if (typeof launchConfetti === 'function') launchConfetti('opening'); }
+    if (!reduce) cerSndFinale();
+    if (!reduce && confetti && typeof launchConfetti === 'function') launchConfetti('opening');
   }
 
   function advance() {
-    if (_openingTimer) { clearTimeout(_openingTimer); _openingTimer = null; }
+    clearPhaseTimers();
     idx++;
-    if (idx >= TEAMS.length) { finishOpening(); return; }
-    showTeam(idx);
-    _openingTimer = setTimeout(advance, reduce ? 1500 : TEAM_MS);
+    if (idx >= items.length) { finishCeremony(); return; }
+    showItem(idx);
   }
 
-  // Tap en cualquier lado salta al siguiente equipo (no en los botones)
-  overlay.onclick = (e) => {
+  overlay.onclick = function(e) {
     if (e.target.closest('.ceremony-close') || e.target.closest('.op-cta')) return;
-    if (idx >= TEAMS.length) return;
-    advance();
+    if (phase === 99) return;
+    if (phase === 0 || phase === 3) { advance(); return; }
+    skipToFull();
   };
 
-  _openingTimer = setTimeout(advance, reduce ? 300 : 1200);
+  _openingTimer = setTimeout(advance, reduce ? 200 : 1000);
+}
+
+// ── APERTURA: cada equipo entra con su color, uno por uno ──
+function openCeremony() {
+  if (!TEAMS.length) return;
+  _runCeremony({
+    items: TEAMS,
+    title: 'Los equipos',
+    eyebrow: 'Noche de juegos · Edición 2026',
+    labelFn: (i, total) => `Equipo ${i + 1} de ${total}`,
+    colorFn: (i) => entityColor(TEAMS[i], i),
+    figFn: (name, color, i) => {
+      const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
+      return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 120, i % 2 ? 'side' : 'victory', photo) : '';
+    },
+    finishTitle: '¡Que empiece<br>La Velada!',
+    finishBtn: 'Entrar ▶',
+    confetti: true,
+  });
+}
+
+// ── PRESENTACIÓN DE CONCURSANTES (Fase 1) ──
+function openPlayerCeremony() {
+  if (!PLAYERS.length) return;
+  _runCeremony({
+    items: PLAYERS,
+    title: 'Los concursantes',
+    eyebrow: 'Fase 1 · Clasificación individual',
+    labelFn: (i, total) => `Concursante ${i + 1} de ${total}`,
+    colorFn: (i) => entityColor(PLAYERS[i], i),
+    figFn: (name, color, i) => {
+      const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
+      return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 120, i % 2 ? 'side' : 'victory', photo) : '';
+    },
+    finishTitle: '¡A jugar!',
+    finishBtn: 'Comenzar ▶',
+    confetti: false,
+  });
 }
 
 // ── CIERRE: podio animado 3°→2°→1° con redoble, y después los créditos ──
@@ -6799,7 +7427,7 @@ function podiumReveal(onContinue) {
     const entry = top3[place - 1];
     if (!entry) return '';
     const m = META[place];
-    const figColor = teamColor(entry.i);
+    const figColor = entityColor(entry.n, entry.i);
     const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(entry.n) : null;
     const fig = (typeof miiFigureSVG === 'function') ? miiFigureSVG(figColor, m.fig, m.pose, photo) : '';
     return `<div class="pr-slot pr-place-${place}" style="--accent-team:${m.color}">`
@@ -7310,6 +7938,7 @@ function openTVMode() {
   // Reglas sembradas desde el padre: en file:// el TV no puede leer el localStorage
   // del padre, así que sin esto caía a una lista hardcodeada con nombres equivocados.
   const rulesStr    = RULES_CONFIG ? JSON.stringify(RULES_CONFIG) : (localStorage.getItem('ndj_rules') || 'null');
+  const colorsStr   = JSON.stringify(_entityColors || {});
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -8077,12 +8706,26 @@ const F1_BYES      = ${f1Byes};
 const F2_FIXTURE   = ${f2Fix};
 const TV_PHASE     = ${tvPhaseJson}; // 'fase1' | 'fase2' | 'both'
 const RULES_INIT   = ${rulesStr};    // reglas sembradas desde el padre (clave en file://)
+const ENTITY_COLORS_INIT = ${colorsStr}; // colores custom por jugador/equipo
 
 // Reglas en el TV: prioriza localStorage (updates en vivo si el origin lo comparte),
 // y si no hay (caso file://), usa lo sembrado al abrir. Nunca cae a hardcode.
 function getTVRules() {
   try { const s = localStorage.getItem('ndj_rules'); if (s) return JSON.parse(s); } catch(e) {}
   return RULES_INIT;
+}
+
+// Colores custom: prioriza localStorage, sino usa los sembrados al abrir
+function getTVEntityColors() {
+  try { const s = localStorage.getItem('ndj_colors'); if (s) return JSON.parse(s); } catch(e) {}
+  return ENTITY_COLORS_INIT || {};
+}
+
+// Paleta de fallback por índice (igual que teamColor en el padre)
+const TV_PALETTE = ['#60b4f0','#e84040','#c8f060','#c060e8','#f5c842','#3aaa68','#e8903a','#ff7eb6','#ffffff','#a0c4ff'];
+function tvEntityColor(name, idx) {
+  const colors = getTVEntityColors();
+  return (colors && colors[name]) || TV_PALETTE[idx % TV_PALETTE.length];
 }
 
 // Apply single-phase layout immediately
@@ -8249,7 +8892,7 @@ function renderTV() {
       const entry=sorted[pos];
       const name=entry?entry.n.split(' ')[0]:null;
       const pts=entry?entry.pts.total:0;
-      const color=COLORS[slotIdx];
+      const color=entry?tvEntityColor(entry.n,entry.i):COLORS[slotIdx];
       const photo=entry?photos[entry.n]||null:null;
       const sz=figSize(slotIdx);
       const fig=entry?miiFigureSVG(color,sz,POSES[slotIdx],photo):'';

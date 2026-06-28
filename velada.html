@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>La Velada del Año</title>
 <!-- ── PWA / Agregar a pantalla de inicio ── -->
 <meta name="theme-color" content="#c8f060">
@@ -48,6 +48,9 @@
     min-height: 100dvh;
     font-size: 14px;
     line-height: 1.5;
+    /* Soporte para notch y barra home en iPhone */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   html { background: var(--bg); }
 
@@ -1615,6 +1618,104 @@
     .nav-tab { padding: 0.85rem 0.6rem; font-size: 12px; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
     .stat-num { font-size: 20px; }
+  }
+
+  /* ============================================================
+     MOBILE EXTRA — mejoras adicionales de layout para pantallas
+     angostas (≤600 px). Amplía y refuerza las reglas previas.
+     ============================================================ */
+  @media (max-width: 600px) {
+
+    /* ── Tabla de ranking: scroll horizontal suave con indicador ── */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      /* borde sutil para indicar que hay más contenido a la derecha */
+      border-radius: var(--radius);
+      position: relative;
+    }
+    /* Fade derecho para indicar scroll */
+    .table-wrap::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 32px;
+      background: linear-gradient(to right, transparent, var(--surface));
+      pointer-events: none;
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    /* Columnas de ronda más compactas */
+    .ranking th,
+    .ranking td { padding: 0.55rem 0.45rem; }
+    .ranking th:first-child,
+    .ranking td:first-child { padding-left: 0.6rem; }
+    .round-pts { min-width: 22px; font-size: 11px; }
+    .player-name { font-size: 13px; }
+    .total-pts { font-size: 15px; }
+    .pos-badge { width: 22px; height: 22px; font-size: 11px; }
+
+    /* ── Fixture: texto más compacto ── */
+    .match-game-badge { font-size: 10px; padding: 2px 6px; }
+    .match-players { font-size: 12px; }
+    .match-result { font-size: 11px; min-width: 48px; }
+
+    /* ── Fixture edit selects ── */
+    .fixture-edit-row { flex-wrap: wrap; gap: 0.4rem; }
+    .fixture-edit-select { font-size: 14px; }   /* ≥16px dispara zoom en iOS */
+
+    /* ── Stats grid 2 cols en muy pequeño ── */
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* ── Final tab: jugadores en columna completa ── */
+    .final-player { flex-wrap: wrap; gap: 0.5rem; }
+    .final-player .badge { font-size: 9px; }
+
+    /* ── Section headers: título + acción en columna si no caben ── */
+    .section-header { flex-wrap: wrap; gap: 0.4rem; }
+
+    /* ── SD players: columna en pantalla muy angosta ── */
+    .sd-players { flex-direction: column; }
+
+    /* ── Impostor result grid: 1 col en muy pequeño ── */
+    .impostor-result-grid { grid-template-columns: 1fr; }
+
+    /* ── Modal bottom-sheet: no se corta con teclado virtual ── */
+    .modal-bg { align-items: flex-end; }
+    .modal {
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    }
+
+    /* ── Botones de acción más altos para dedos gordos ── */
+    .fixture-edit-save { padding: 0.55rem 0.9rem; font-size: 13px; }
+
+    /* ── Toast: que no se corte en pantallas angostas ── */
+    .toast {
+      left: 1rem; right: 1rem;
+      transform: translateX(0) translateY(0);
+      white-space: normal;
+      width: auto;
+    }
+    .toast.hide {
+      transform: translateX(0) translateY(8px);
+    }
+
+    /* ── Page padding safe-area para iPhone con notch ── */
+    .page { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    nav { padding-left: max(0.5rem, env(safe-area-inset-left));
+          padding-right: max(0.5rem, env(safe-area-inset-right)); }
+
+    /* ── Reglas: tabla resumen ── */
+    .rules-hero-sub { font-size: 12px; }
+  }
+
+  @media (max-width: 400px) {
+    /* Rondas: ocultar columnas de bonus/especial en pantallas muy pequeñas
+       muestra solo R1-R6 y Total; el usuario puede hacer scroll si quiere ver más */
+    .ranking .round-pts { min-width: 18px; font-size: 10px; }
+    .total-pts { font-size: 14px; }
+    .match-row { gap: 0.4rem; }
   }
 
   /* ============================================================
@@ -7985,7 +8086,7 @@ function openTVMode() {
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>📺 Podio en vivo — La Velada del Año</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }

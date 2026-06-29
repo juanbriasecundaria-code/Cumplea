@@ -374,12 +374,28 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   }
   .reveal-next.show { opacity: 1; transform: none; }
 
+  /* ── ESCAPE ROW (finalizar / página principal) ── */
+  .escape-row {
+    display: flex; gap: 0.5rem; width: 100%; max-width: 360px; margin-top: 0.3rem;
+  }
+  .reveal-overlay .escape-row { opacity: 1 !important; transform: none !important; }
+  .escape-btn {
+    flex: 1; min-width: 0; padding: 0.7rem 0.5rem; border-radius: calc(var(--radius) - 2px);
+    border: 1.5px solid var(--border2); background: var(--surface2); color: var(--muted);
+    font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
+    display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+    transition: border-color 0.15s, color 0.15s, transform 0.1s; text-align: center;
+  }
+  .escape-btn:active { transform: scale(0.96); }
+  .escape-btn.finish:active { border-color: var(--gold); color: var(--gold); }
+  .escape-btn.home:active { border-color: var(--red); color: var(--red); }
+
   /* ── WIN OVERLAY ── */
   .win-overlay {
-    position: fixed; inset: 0; z-index: 320; display: none;
+    position: fixed; inset: 0; z-index: 500; display: none;
     flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; text-align: center;
     padding: max(2rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom));
-    background: radial-gradient(120% 90% at 50% 40%, rgba(245,200,66,0.18), rgba(0,0,0,0.96));
+    background: radial-gradient(120% 90% at 50% 40%, rgba(245,200,66,0.22), transparent 65%), var(--bg);
   }
   .win-overlay.open { display: flex; animation: rvFade 0.3s ease-out; }
   .win-trophy { font-size: 4rem; line-height: 1; animation: winBounce 0.7s cubic-bezier(.2,.9,.3,1.3); }
@@ -574,6 +590,10 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   </div>
 
   <div class="wait-note" id="game-foot"></div>
+  <div class="escape-row" style="margin-top:0.2rem">
+    <button class="escape-btn finish" onclick="finishDuelNow()">⏹ Finalizar duelo</button>
+    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 Página principal</a>
+  </div>
 </div>
 
 <!-- CARGAR CORRECTO (overlay simple) -->
@@ -604,7 +624,15 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   </div>
   <div class="reveal-next" id="reveal-next">
     <button class="big-btn success" id="next-btn" onclick="submitNext()">→ Siguiente ronda</button>
-    <div class="wait-note" id="next-wait" style="margin-top:0.6rem"></div>
+    <div class="ready-chips" id="next-chips" style="margin-top:0.6rem;display:none">
+      <div class="ready-chip a" id="next-chip-a"><span class="ready-chip-name" id="next-chip-a-name">Equipo 1</span><span class="ready-chip-state" id="next-chip-a-state">Esperando…</span></div>
+      <div class="ready-chip b" id="next-chip-b"><span class="ready-chip-name" id="next-chip-b-name">Equipo 2</span><span class="ready-chip-state" id="next-chip-b-state">Esperando…</span></div>
+    </div>
+    <div class="wait-note" id="next-wait" style="margin-top:0.3rem"></div>
+  </div>
+  <div class="escape-row">
+    <button class="escape-btn finish" onclick="finishDuelNow()">⏹ Finalizar duelo</button>
+    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 Página principal</a>
   </div>
 </div>
 
@@ -828,6 +856,8 @@ function onState(){
   } else {
     refreshPhaseUI();
   }
+  // Actualizar chips de "siguiente ronda" si estamos en revealed
+  if(G.phase === 'revealed'){ refreshNextWait(); }
 }
 
 function syncReadyChip(t, team){
@@ -1052,12 +1082,46 @@ function refreshNextWait(){
   const me = G.teams[myTeam], other = G.teams[myTeam==='a'?'b':'a'];
   const w = document.getElementById('next-wait');
   const nb = document.getElementById('next-btn');
+  const chips = document.getElementById('next-chips');
+  const ta = G.teams.a, tb = G.teams.b;
+  const nameA = ta.name || 'Equipo 1', nameB = tb.name || 'Equipo 2';
+
+  // Actualizar chips individuales
+  const chipA = document.getElementById('next-chip-a'), chipB = document.getElementById('next-chip-b');
+  _setText('next-chip-a-name', nameA); _setText('next-chip-b-name', nameB);
+  if(ta.next){
+    chipA.classList.add('is-ready'); _setText('next-chip-a-state', '✓ Listo');
+  } else {
+    chipA.classList.remove('is-ready'); _setText('next-chip-a-state', 'Esperando…');
+  }
+  if(tb.next){
+    chipB.classList.add('is-ready'); _setText('next-chip-b-state', '✓ Listo');
+  } else {
+    chipB.classList.remove('is-ready'); _setText('next-chip-b-state', 'Esperando…');
+  }
+
   if(me.next){
     nb.disabled = true; nb.textContent = '✓ Listo para seguir';
-    if(!other.next) w.innerHTML = 'Esperando al otro equipo <span class="wait-dots"><span>.</span><span>.</span><span>.</span></span>';
-    else w.textContent = '';
+    chips.style.display = '';
+    if(!other.next){
+      const otherName = other.name || (myTeam==='a'?'Equipo 2':'Equipo 1');
+      w.innerHTML = 'Falta ' + otherName + ' <span class="wait-dots"><span>.</span><span>.</span><span>.</span></span>';
+    } else {
+      w.textContent = '';
+    }
   } else {
-    nb.disabled = false; nb.textContent = '→ Siguiente ronda'; w.textContent = '';
+    nb.disabled = false;
+    // Mostrar chips solo si el otro ya apretó (para que veas que falta vos)
+    if(other.next){
+      chips.style.display = '';
+      const myName = me.name || (myTeam==='a'?'Equipo 1':'Equipo 2');
+      nb.textContent = '→ Siguiente ronda';
+      w.innerHTML = '¡El otro equipo ya está listo, apretá vos también!';
+    } else {
+      chips.style.display = 'none';
+      nb.textContent = '→ Siguiente ronda';
+      w.textContent = '';
+    }
   }
 }
 
@@ -1162,6 +1226,29 @@ function newDuel(){
   fresh.teams.a.name = na; fresh.teams.b.name = nb;
   fbRef.set(fresh);
   document.getElementById('win-overlay').classList.remove('open');
+}
+
+// Finalizar el duelo en cualquier momento → gana el de más puntos (empate: Equipo 1)
+function finishDuelNow(){
+  ccConfirm('¿Finalizar el duelo ahora? Gana el equipo con más puntos.', ()=>{
+    if(!fbRef){ return; }
+    fbRef.transaction(cur=>{
+      if(!cur) return cur;
+      const sa = cur.teams.a.score||0, sb = cur.teams.b.score||0;
+      cur.phase = 'finished';
+      cur.winner = sa >= sb ? 'a' : 'b';
+      return cur;
+    });
+    if(navigator.vibrate) navigator.vibrate(30);
+  });
+}
+
+// Volver al hub (index)
+function goHome(e){
+  if(e) e.preventDefault();
+  ccConfirm('¿Volver a la página principal? Vas a salir de este duelo.', ()=>{
+    window.location.href = 'index.html';
+  });
 }
 
 // ─── NOMBRES ─────────────────────────────────────────────────────

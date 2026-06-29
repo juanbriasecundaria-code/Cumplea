@@ -6780,6 +6780,50 @@ function saveFinalEdits() {
   renderFinal();
 }
 
+// ============================================================
+// 3ER PUESTO (mismo esquema que la final, con los segundos de cada fase)
+// ============================================================
+const TERCER_CONFIG_DEFAULT = {
+  juego: '',
+  formato: 'A definir por el organizador. Mismo espíritu que la final, pero entre los subcampeones de cada fase.',
+  puntos: 'El puntaje del 3er puesto se define según el juego elegido. El primero en llegar al objetivo se queda con el bronce.',
+  nota: 'El 2° de la fase individual elige compañero (no puede ser alguien que juegue la final). Pelea contra el 2° equipo de la fase grupal.',
+  companero: '',
+};
+let TERCER_CONFIG = null;
+let _tercerEditMode = false;
+
+function loadTercerConfig() {
+  try {
+    const s = localStorage.getItem('ndj_tercer_config');
+    if (s) TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT, JSON.parse(s));
+    else TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT);
+  } catch(e) { TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT); }
+}
+function saveTercerConfig() {
+  localStorage.setItem('ndj_tercer_config', JSON.stringify(TERCER_CONFIG));
+}
+function toggleTercerEdit() {
+  _tercerEditMode = !_tercerEditMode;
+  renderFinal();
+}
+function saveTercerEdits() {
+  const juego  = document.getElementById('tercer-edit-juego')?.value?.trim();
+  const formato = document.getElementById('tercer-edit-formato')?.value?.trim();
+  const puntos = document.getElementById('tercer-edit-puntos')?.value?.trim();
+  const nota = document.getElementById('tercer-edit-nota')?.value?.trim();
+  const companero = document.getElementById('tercer-edit-companero')?.value?.trim();
+  if (juego !== undefined) TERCER_CONFIG.juego = juego;
+  if (formato) TERCER_CONFIG.formato = formato;
+  if (puntos) TERCER_CONFIG.puntos = puntos;
+  if (nota) TERCER_CONFIG.nota = nota;
+  if (companero !== undefined) TERCER_CONFIG.companero = companero;
+  saveTercerConfig();
+  _tercerEditMode = false;
+  showToast('🥉', '3er puesto guardado', false);
+  renderFinal();
+}
+
 function renderFinal() {
   const root = document.getElementById('final-root');
   if (!root) return;
@@ -6941,6 +6985,63 @@ function renderFinal() {
       <div class="stat-card"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
     </div>`;
 
+  // ---- 3ER PUESTO: los segundos de cada fase ----
+  const tc = TERCER_CONFIG;
+  const segundoP = sortedP.slice(1,2).map((p) => playerCard(p, 1, 'f1'));
+  const segundoT = sortedT.slice(1,2).map((t) => playerCard(t, 1, 'f2'));
+  const tercerClasificadosHtml = [...segundoP, ...segundoT].join('')
+    || `<div class="final-clasificado-none">Aún no hay datos suficientes.</div>`;
+
+  const companeroHtml = tc.companero
+    ? `<div class="final-player" style="border-style:dashed">
+         <div class="pos-badge accent">+</div>
+         <div style="flex:1">
+           <div style="font-weight:500;font-size:14px">${tc.companero}</div>
+           <div style="font-size:11px;color:var(--muted)">Compañero elegido (2° individual)</div>
+         </div>
+         <span style="font-size:11px;color:var(--muted);font-style:italic">invitado</span>
+       </div>`
+    : '';
+
+  const tercerJuegoDisplay = tc.juego
+    ? `<span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span>`
+    : `<span style="font-size:12px;color:var(--muted);font-style:italic">Sin definir — editá para agregar el juego</span>`;
+
+  const tercerEditBar = _tercerEditMode
+    ? `<div class="final-edit-bar active"><span>✏️ Modo edición activo</span><button class="final-edit-toggle" onclick="toggleTercerEdit()">Terminar</button></div>`
+    : `<div class="final-edit-bar"><span>⚙️ Podés editar el juego, formato y compañero del 3er puesto</span><button class="final-edit-toggle" onclick="toggleTercerEdit()">Editar</button></div>`;
+
+  const tercerFormatoSection = _tercerEditMode ? `
+    <div class="final-edit-field">
+      <label class="final-edit-label">Compañero del 2° individual</label>
+      <input class="final-edit-input" id="tercer-edit-companero" placeholder="Nombre del compañero elegido…" value="${(tc.companero||'').replace(/"/g,'&quot;')}">
+    </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">Juego del 3er puesto</label>
+      <input class="final-edit-input" id="tercer-edit-juego" placeholder="ej: Keep Talking, Trivia, Kahoot…" value="${(tc.juego||'').replace(/"/g,'&quot;')}">
+    </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">Formato</label>
+      <textarea class="final-edit-textarea" id="tercer-edit-formato">${tc.formato}</textarea>
+    </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">Sistema de puntos</label>
+      <textarea class="final-edit-textarea" id="tercer-edit-puntos">${tc.puntos}</textarea>
+    </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
+      <input class="final-edit-input" id="tercer-edit-nota" value="${tc.nota.replace(/"/g,'&quot;')}">
+    </div>
+    <button class="final-edit-save" onclick="saveTercerEdits()">Guardar cambios</button>
+  ` : `
+    <div class="rule-label" style="margin-top:0">Juego</div>
+    <div style="margin-bottom:0.9rem">${tercerJuegoDisplay}</div>
+    <div class="rule-label">Formato</div>
+    <p style="font-size:13px;line-height:1.6;color:var(--text);margin-bottom:0.9rem">${tc.formato}</p>
+    <div class="rule-label">Puntos</div>
+    <p style="font-size:13px;line-height:1.6;color:var(--text)">${tc.puntos}</p>
+  `;
+
   root.innerHTML = `
     <!-- PROGRESO -->
     <div class="card">
@@ -6966,6 +7067,20 @@ function renderFinal() {
     <div class="card">
       ${editBar}
       ${formatoSection}
+    </div>
+
+    <!-- CLASIFICADOS AL 3ER PUESTO -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:${tc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator" style="background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.6)"></span>Clasificados al 3er puesto</div>
+      ${tc.juego ? `<div style="margin-bottom:1rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span></div>` : ''}
+      <div class="final-players">${tercerClasificadosHtml}${companeroHtml}</div>
+      <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${tc.nota}</div>
+    </div>
+
+    <!-- JUEGO DEL 3ER PUESTO (editable) -->
+    <div class="card">
+      ${tercerEditBar}
+      ${tercerFormatoSection}
     </div>
 
     <!-- MOTES -->
@@ -9450,6 +9565,7 @@ function updateNavProgress() {
 loadState();
 loadRulesConfig();
 loadFinalConfig();
+loadTercerConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
 restoreImpGame();

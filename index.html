@@ -438,6 +438,32 @@ let fbDb = null, fbRef = null, fbInited = false;
 let currentGame = null;   // 'movies' | 'argentinos'
 let bzTeam = null;        // 'a' | 'b'
 let bzListener = null;
+let namesListener = null;
+// Aplica los nombres recibidos de Firebase a la UI de selección
+function applyTeamNames(d){
+  d = d || {};
+  if(d.names){
+    if(d.names.a){ nameA=d.names.a; const e=document.getElementById('ts-na'); if(e) e.textContent=nameA; }
+    if(d.names.b){ nameB=d.names.b; const e=document.getElementById('ts-nb'); if(e) e.textContent=nameB; }
+  }
+}
+// Activa el listener en vivo de nombres (se actualiza al instante en todos)
+function startNamesListener(){
+  if(!fbRef) return;
+  if(namesListener){ fbRef.off('value', namesListener); namesListener=null; }
+  namesListener = fbRef.on('value', snap=>{
+    applyTeamNames(snap.val());
+    const dot=document.getElementById('connecting-dot'); if(dot) dot.style.display='none';
+    const txt=document.getElementById('connecting-text'); if(txt) txt.style.display='none';
+  }, ()=>{
+    const dot=document.getElementById('connecting-dot'); if(dot) dot.style.display='none';
+    const txt=document.getElementById('connecting-text'); if(txt){ txt.style.display=''; txt.textContent='⚠️ Sin conexión — podés seguir igual'; }
+  });
+}
+// Apaga el listener de nombres (al salir de la pantalla de selección)
+function stopNamesListener(){
+  if(namesListener && fbRef){ fbRef.off('value', namesListener); namesListener=null; }
+}
 let nameA = 'Equipo 1', nameB = 'Equipo 2';
 
 // ── HELPERS ─────────────────────────────────────────────────────
@@ -478,21 +504,11 @@ function selectGame(gameId){
   show('team-select-screen');
 
   initFirebase(()=>{
-    // Conectar al nodo del juego para leer nombres de equipos
+    // Conectar al nodo del juego y escuchar los nombres en vivo
     if(bzListener){ fbRef && fbRef.off('value', bzListener); bzListener=null; }
+    stopNamesListener();
     fbRef = fbDb.ref(GAME_PATHS[gameId]);
-    fbRef.once('value', snap=>{
-      const d = snap.val()||{};
-      if(d.names){
-        if(d.names.a){ nameA=d.names.a; document.getElementById('ts-na').textContent=nameA; }
-        if(d.names.b){ nameB=d.names.b; document.getElementById('ts-nb').textContent=nameB; }
-      }
-      document.getElementById('connecting-dot').style.display = 'none';
-      document.getElementById('connecting-text').style.display = 'none';
-    }, ()=>{
-      document.getElementById('connecting-dot').style.display = 'none';
-      document.getElementById('connecting-text').textContent = '⚠️ Sin conexión — podés seguir igual';
-    });
+    startNamesListener();
   });
 }
 
@@ -538,6 +554,7 @@ function selectTeam(team){
   document.getElementById('bz-status').className = 'bz-status';
   hideResult(); _resultShownFor = null;
 
+  stopNamesListener();
   show('buzz-screen');
   startBuzzListener();
 }
@@ -548,6 +565,7 @@ function goBack(to){
 
   if(to==='game'){
     bzTeam=null; currentGame=null;
+    stopNamesListener();
     show('game-select-screen');
   } else if(to==='team'){
     bzTeam=null;
@@ -555,14 +573,8 @@ function goBack(to){
     document.getElementById('ts-na').textContent = nameA;
     document.getElementById('ts-nb').textContent = nameB;
     show('team-select-screen');
-    // Re-arrancar listener de nombres
-    if(fbRef) fbRef.once('value', snap=>{
-      const d=snap.val()||{};
-      if(d.names){
-        if(d.names.a){ nameA=d.names.a; document.getElementById('ts-na').textContent=nameA; }
-        if(d.names.b){ nameB=d.names.b; document.getElementById('ts-nb').textContent=nameB; }
-      }
-    });
+    // Re-arrancar listener de nombres EN VIVO
+    startNamesListener();
   }
 }
 

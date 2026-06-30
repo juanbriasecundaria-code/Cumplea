@@ -6856,6 +6856,49 @@ function saveCampeones() {
   renderFinal();
 }
 
+// ============================================================
+// ELENCO (nombres editables para los créditos; base = fase 1)
+// ============================================================
+let ELENCO_CONFIG = null;   // { byNick: { 'Risu':'Risu nuevo', ... } }
+function loadElencoConfig() {
+  try {
+    const s = localStorage.getItem('ndj_elenco_config');
+    ELENCO_CONFIG = s ? JSON.parse(s) : { byNick: {} };
+    if (!ELENCO_CONFIG.byNick) ELENCO_CONFIG.byNick = {};
+  } catch(e) { ELENCO_CONFIG = { byNick: {} }; }
+}
+function saveElencoConfig() {
+  try { localStorage.setItem('ndj_elenco_config', JSON.stringify(ELENCO_CONFIG)); } catch(e){}
+}
+// Devuelve el nombre a mostrar para el elenco: el editado si existe, si no el de fase 1
+function elencoName(nick) {
+  if (ELENCO_CONFIG && ELENCO_CONFIG.byNick && ELENCO_CONFIG.byNick[nick] != null && ELENCO_CONFIG.byNick[nick] !== '') {
+    return ELENCO_CONFIG.byNick[nick];
+  }
+  return nick;
+}
+function saveElencoEdits() {
+  if (!ELENCO_CONFIG) ELENCO_CONFIG = { byNick: {} };
+  PLAYERS.forEach((nick, i) => {
+    const inp = document.getElementById('elenco-edit-' + i);
+    if (inp) {
+      const v = (inp.value || '').trim();
+      // si lo dejan igual al de fase 1 (o vacío), no guardamos override
+      if (v === '' || v === nick) delete ELENCO_CONFIG.byNick[nick];
+      else ELENCO_CONFIG.byNick[nick] = v;
+    }
+  });
+  saveElencoConfig();
+  showToast('🎬', 'Elenco guardado', false);
+  renderFinal();
+}
+function resetElencoEdits() {
+  ELENCO_CONFIG = { byNick: {} };
+  saveElencoConfig();
+  showToast('↺', 'Elenco restaurado a la fase 1', false);
+  renderFinal();
+}
+
 function renderFinal() {
   const root = document.getElementById('final-root');
   if (!root) return;
@@ -7161,6 +7204,22 @@ function renderFinal() {
       <input type="file" id="fn-file" accept="image/*" style="display:none" onchange="fnLoad(this)">
     </div>
 
+    <!-- ELENCO (editable, base = fase 1) -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator final"></span>Elenco</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Estos nombres aparecen en los créditos. Vienen de la fase 1 — editalos si querés que se muestren distinto.</div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        ${PLAYERS.map((nick,i)=>`
+          <div class="final-edit-field" style="margin:0">
+            <input class="final-edit-input" id="elenco-edit-${i}" placeholder="${nick.replace(/"/g,'&quot;')}" value="${elencoName(nick).replace(/"/g,'&quot;')}">
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:0.6rem;margin-top:1rem">
+        <button class="final-edit-save" style="flex:1" onclick="saveElencoEdits()">Guardar elenco</button>
+        <button class="final-edit-save" style="flex:0 0 auto;background:var(--surface2);color:var(--muted);border:1.5px solid var(--border2)" onclick="resetElencoEdits()">↺ Fase 1</button>
+      </div>
+    </div>
+
     <!-- CAMPEONES (carga directa para los créditos) -->
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
@@ -7278,7 +7337,7 @@ function rollCredits() {
   const medal = ['🥇', '🥈', '🥉'];
 
   const champP = sortedP[0], champT = sortedT[0];
-  const pName = (n) => esc(fullName(n));   // jugadores → nombre completo
+  const pName = (n) => esc(n);             // jugadores → tal cual los cargaste en la fase 1
   const tName = (n) => esc(n);             // equipos → tal cual
   const podium = (arr, nf) => arr.slice(0, 3)
     .map((e, i) => `<div class="cr-line">${medal[i]} ${nf(e.n)} <span class="cr-mini">· ${e.pts} pts</span></div>`).join('');
@@ -7317,7 +7376,7 @@ function rollCredits() {
       <div class="cr-tag">Edición 2026</div>
 
       <div class="cr-role">Campeón · Fase Individual</div>
-      <div class="cr-name champ">🏆 ${esc(champP ? fullName(champP.n) : '—')}<span class="cr-pts">${champP ? champP.pts : 0} pts</span></div>
+      <div class="cr-name champ">🏆 ${esc(champP ? champP.n : '—')}<span class="cr-pts">${champP ? champP.pts : 0} pts</span></div>
 
       <div class="cr-role">Campeón · Fase Grupal</div>
       <div class="cr-name champ">🏆 ${esc(champT ? champT.n : '—')}<span class="cr-pts">${champT ? champT.pts : 0} pts</span></div>
@@ -7330,7 +7389,7 @@ function rollCredits() {
 
       <div class="cr-divider"></div>
       <div class="cr-role">El elenco</div>
-      ${cast(sortedP, pName)}
+      ${cast(sortedP, (n)=>esc(elencoName(n)))}
       <div class="cr-role">Los equipos</div>
       ${cast(sortedT, tName)}
 
@@ -7785,7 +7844,7 @@ function podiumReveal(phaseKind, onContinue) {
     return `<div class="pr-slot pr-place-${place}" style="--accent-team:${m.color}">`
       + `<div class="pr-fig">${place === 1 ? '<div class="pr-crown">👑</div>' : ''}${fig}</div>`
       + `<div class="pr-medal">${m.medal}</div>`
-      + `<div class="pr-name">${_escC(phaseKind === 'individual' && typeof fullName === 'function' ? fullName(entry.n) : entry.n)}</div>`
+      + `<div class="pr-name">${_escC(entry.n)}</div>`
       + `<div class="pr-pts">${entry.pts} pts</div>`
       + `<div class="pr-block" style="--h:${m.h}px"><span>${place}°</span></div>`
       + `</div>`;
@@ -7798,7 +7857,7 @@ function podiumReveal(phaseKind, onContinue) {
     + slotFor(2) + slotFor(1) + slotFor(3)
     + '</div></div>'
     + '<div class="pr-caption" id="pr-caption"></div>'
-    + '<button class="pr-cta" id="pr-cta">🎬 Bajar las luces</button>';
+    + '<button class="pr-cta" id="pr-cta">' + (phaseKind === 'individual' ? '🥇 Pasar al podio grupal' : '🎬 Bajar las luces') + '</button>';
   overlay.classList.remove('ceremony-out');
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
@@ -9642,6 +9701,7 @@ loadState();
 loadRulesConfig();
 loadFinalConfig();
 loadTercerConfig();
+loadElencoConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
 restoreImpGame();

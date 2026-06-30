@@ -2207,6 +2207,10 @@ body.started .velada-bg-scrim { display: block; }
 .pr-cta { position: relative; z-index: 1; opacity: 0; pointer-events: none;
   color: var(--gold); background: var(--gold-dim); border: 1.5px dashed var(--gold); box-shadow: none; }
 .pr-cta.show { opacity: 1; pointer-events: auto; animation: cerFadeIn 0.6s ease forwards; }
+.pr-cta.pr-skip { font-size: 12px; padding: 0.5rem 1.1rem; color: var(--muted);
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); opacity: 0; }
+.pr-cta.pr-skip.show { opacity: 0.55; }
+.pr-cta.pr-skip:hover { opacity: 1; color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
   .ceremony-close { animation: none; opacity: 1; }
@@ -7265,10 +7269,14 @@ const CREDITS_MUSIC = {
   enabled: true,
   src: 'cancion-creditos.mp3', // Wanna Be Startin' Somethin' — Michael Jackson
   startAt: 1.3,    // saltea el silencio inicial; arranca con el groove icónico
-  endAt:   61,     // ~60s de música (máximo pedido)
+  endAt:   100,    // groove largo: cubre los podios (~20s) + los créditos (~75s)
   volume:  0.85,
-  fadeInMs:  2500, // entra suave en 2.5s (no se nota el arranque)
-  fadeOutMs: 3500, // se desvanece en 3.5s al final (no se nota el corte)
+  fadeInMs:  2500, // entra suave en 2.5s
+  fadeOutMs: 3500, // fade out final (sobre el contador)
+  // ── Outro "mama-say" sobre el contador ──
+  outroAt:      340,   // 5:40 — entrada limpia al "mama-say mama-sa"
+  outroHoldMs:  13000, // cuánto suena el mama-say sobre el contador (~13s)
+  crossfadeMs:  1400,  // duración del crossfade entre el groove y el mama-say
 };
 const CREDITS_FAST_SPEED = 95; // px/seg si no hay música (más rápido que antes)
 
@@ -7279,6 +7287,7 @@ let _creditsAudio = null;
 let _countdownInterval = null;
 let _creditsEndTimer = null;
 let _rollStarted = false;
+let _grooveGuard = null;
 
 const fullName = (nick) => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[nick]) ? FULL_NAMES[nick] : nick;
 
@@ -7466,31 +7475,21 @@ function rollCredits() {
   }
 
   const travel = () => window.innerHeight + roll.offsetHeight + 40;
-  const audio = makeCreditsAudio();
+  // La música YA viene sonando desde el podio (startCeremonyMusic). Acá solo
+  // sincronizamos el scroll con el tiempo de groove que queda hasta el "mama-say".
+  const audio = _creditsAudio;
 
-  if (audio) {
-    let begun = false;
-    const begin = () => {
-      if (begun) return; begun = true;
-      const dur = (audio.duration && isFinite(audio.duration)) ? audio.duration : null;
-      const startAt = CREDITS_MUSIC.startAt || 0;
-      const endAt = (CREDITS_MUSIC.endAt != null) ? CREDITS_MUSIC.endAt : (dur || (startAt + 45));
-      const win = Math.max(8, endAt - startAt);            // segundos de música a cubrir
-      try { audio.currentTime = startAt; } catch (e) {}
-      audio.play().catch(() => {});
-      fadeInCreditsAudio();                                 // entra suave (fade in)
-      startRoll(travel() / win);                            // velocidad = recorrido / duración del tramo
-      // Arranca el fade out con anticipación para que se complete justo al llegar a endAt
-      const fadeOutMs = (CREDITS_MUSIC.fadeOutMs != null) ? CREDITS_MUSIC.fadeOutMs : 3000;
-      const fadeStartAt = endAt - (fadeOutMs / 1000);
-      const guard = setInterval(() => {
-        if (!_creditsAudio) { clearInterval(guard); return; }
-        if (_creditsAudio.currentTime >= fadeStartAt) { clearInterval(guard); fadeOutCreditsAudio(); }
-      }, 150);
-    };
-    audio.addEventListener('loadedmetadata', begin);
-    audio.addEventListener('error', () => startRoll(CREDITS_FAST_SPEED)); // falta el archivo
-    setTimeout(() => { if (!_rollStarted) startRoll(CREDITS_FAST_SPEED); }, 1800); // red de seguridad
+  if (audio && CREDITS_MUSIC.enabled) {
+    const startAt = CREDITS_MUSIC.startAt || 0;
+    const endAt = (CREDITS_MUSIC.endAt != null) ? CREDITS_MUSIC.endAt : (startAt + 60);
+    // tiempo restante de groove desde la posición actual del audio hasta endAt
+    let pos = startAt;
+    try { pos = audio.currentTime; } catch (e) {}
+    if (pos < startAt || pos > endAt) pos = startAt; // por si el guard lo movió raro
+    const win = Math.max(8, endAt - pos);            // segundos que quedan de groove
+    // el groove guard se libera: a partir de acá el scroll define el final
+    if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
+    startRoll(travel() / win);
   } else {
     startRoll(CREDITS_FAST_SPEED);
   }
@@ -7513,12 +7512,55 @@ function startRoll(speed) {
   _creditsAF = requestAnimationFrame(frame);
 }
 
-// Terminaron los créditos: negro un rato y, de la nada, el contador
+// Terminaron los créditos: crossfade al "mama-say", aparece el contador,
+// suena unos segundos y fade out final.
 function creditsEnded() {
   if (_creditsAF) { cancelAnimationFrame(_creditsAF); _creditsAF = null; }
-  fadeOutCreditsAudio();
-  if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
-  _creditsEndTimer = setTimeout(showCountdown, 3500);
+  if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
+  const a = _creditsAudio;
+  const hasOutro = a && CREDITS_MUSIC.outroAt != null && isFinite(a.duration);
+
+  if (!hasOutro) {
+    // sin outro configurado: comportamiento clásico (fade out + contador)
+    fadeOutCreditsAudio();
+    if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
+    _creditsEndTimer = setTimeout(showCountdown, 3500);
+    return;
+  }
+
+  // ── CROSSFADE al "mama-say" ──
+  const target  = (CREDITS_MUSIC.volume != null) ? CREDITS_MUSIC.volume : 0.85;
+  const xfMs    = CREDITS_MUSIC.crossfadeMs || 1400;
+  const holdMs  = CREDITS_MUSIC.outroHoldMs || 13000;
+  const outroAt = CREDITS_MUSIC.outroAt;
+  const stepMs  = 70;
+  const half    = xfMs / 2;
+  const downSteps = Math.max(1, half / stepMs);
+  const dec = target / downSteps;
+
+  // 1) baja el groove
+  const fadeDown = () => {
+    if (!_creditsAudio) return;
+    if (a.volume > dec) { try { a.volume = Math.max(0, a.volume - dec); } catch (e) {} setTimeout(fadeDown, stepMs); }
+    else {
+      // 2) en el punto más bajo, salta al mama-say
+      try { a.volume = 0; a.currentTime = outroAt; } catch (e) {}
+      // 3) aparece el contador justo cuando entra el mama-say
+      showCountdown();
+      // 4) sube el mama-say
+      const inc = target / downSteps;
+      const fadeUp = () => {
+        if (!_creditsAudio) return;
+        if (a.volume < target - inc) { try { a.volume = Math.min(target, a.volume + inc); } catch (e) {} setTimeout(fadeUp, stepMs); }
+        else { try { a.volume = target; } catch (e) {} }
+      };
+      fadeUp();
+      // 5) tras unos segundos de mama-say, fade out final
+      if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
+      _creditsEndTimer = setTimeout(() => fadeOutCreditsAudio(), holdMs);
+    }
+  };
+  fadeDown();
 }
 
 function showCountdown() {
@@ -7833,12 +7875,46 @@ function openPlayerCeremony() {
   });
 }
 
-// ── CIERRE: podio individual → grupal → créditos ──
+// ── CIERRE AUTOMÁTICO: música MJ + podio individual → grupal → créditos ──
+// Todo corre solo desde que se aprieta "Dar fin a la noche". Un botón "saltar"
+// discreto permite avanzar a mano por las dudas.
 function grandFinale() {
-  // Primero el podio de la fase individual, después el grupal, después créditos
+  // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
+  startCeremonyMusic();
+  // 2) Podio individual → (5s) → podio grupal → (5s) → créditos
   podiumReveal('individual', () => {
-    podiumReveal('grupal', () => rollCredits());
+    _ceremonyTimer = setTimeout(() => {
+      podiumReveal('grupal', () => {
+        _ceremonyTimer = setTimeout(() => { rollCredits(); }, 5000);
+      });
+    }, 5000);
   });
+}
+
+// Arranca la canción de créditos al inicio de la ceremonia (en el primer podio)
+let _ceremonyTimer = null;
+function startCeremonyMusic() {
+  if (!CREDITS_MUSIC.enabled) return;
+  _resumeAudio();
+  const audio = makeCreditsAudio();
+  if (!audio) return;
+  const begin = () => {
+    const startAt = CREDITS_MUSIC.startAt || 0;
+    try { audio.currentTime = startAt; } catch (e) {}
+    audio.play().catch(() => {});
+    fadeInCreditsAudio();
+    // mantener el audio dentro del groove hasta que los créditos tomen el control
+    const endAt = (CREDITS_MUSIC.endAt != null) ? CREDITS_MUSIC.endAt : (startAt + 60);
+    if (_grooveGuard) clearInterval(_grooveGuard);
+    _grooveGuard = setInterval(() => {
+      if (!_creditsAudio) { clearInterval(_grooveGuard); _grooveGuard = null; return; }
+      if (!_rollStarted && _creditsAudio.currentTime >= endAt) {
+        try { _creditsAudio.currentTime = Math.max(startAt, endAt - 12); } catch (e) {}
+      }
+    }, 200);
+  };
+  if (isFinite(audio.duration) && audio.duration > 0) begin();
+  else audio.addEventListener('loadedmetadata', begin, { once: true });
 }
 
 function podiumReveal(phaseKind, onContinue) {
@@ -7893,7 +7969,7 @@ function podiumReveal(phaseKind, onContinue) {
     + slotFor(2) + slotFor(1) + slotFor(3)
     + '</div></div>'
     + '<div class="pr-caption" id="pr-caption"></div>'
-    + '<button class="pr-cta" id="pr-cta">' + (phaseKind === 'individual' ? '🥇 Pasar al podio grupal' : '🎬 Bajar las luces') + '</button>';
+    + '<button class="pr-cta pr-skip" id="pr-cta">' + (phaseKind === 'individual' ? 'Saltar al podio grupal →' : 'Saltar a los créditos →') + '</button>';
   overlay.classList.remove('ceremony-out');
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
@@ -7902,7 +7978,16 @@ function podiumReveal(phaseKind, onContinue) {
   const cta     = overlay.querySelector('#pr-cta');
   const slots = { 1: overlay.querySelector('.pr-place-1'), 2: overlay.querySelector('.pr-place-2'), 3: overlay.querySelector('.pr-place-3') };
 
-  cta.onclick = (e) => { e.stopPropagation(); closeCeremony('podium-reveal'); if (onContinue) setTimeout(onContinue, 520); };
+  let advanced = false;
+  const advance = () => {
+    if (advanced) return; advanced = true;
+    if (_podiumTimer) { clearTimeout(_podiumTimer); _podiumTimer = null; }
+    if (_ceremonyTimer) { clearTimeout(_ceremonyTimer); _ceremonyTimer = null; }
+    closeCeremony('podium-reveal');
+    if (onContinue) setTimeout(onContinue, 520);
+  };
+  // El botón "saltar" adelanta la ceremonia manualmente (emergencia)
+  cta.onclick = (e) => { e.stopPropagation(); advance(); };
 
   const order = [3, 2, 1].filter(p => slots[p]); // revela de menor a mayor
   let k = 0;
@@ -7910,6 +7995,9 @@ function podiumReveal(phaseKind, onContinue) {
   function finishPodium() {
     caption.textContent = '';
     cta.classList.add('show');
+    // AUTOMÁTICO: tras revelar el campeón, espera 5s y avanza solo
+    if (_ceremonyTimer) clearTimeout(_ceremonyTimer);
+    _ceremonyTimer = setTimeout(advance, 5000);
   }
 
   function revealNext() {
@@ -7919,16 +8007,16 @@ function podiumReveal(phaseKind, onContinue) {
     caption.textContent = META[place].label;
     const reveal = () => {
       if (slots[place]) slots[place].classList.add('revealed');
-      playDrumHit(0.45, isChamp ? 90 : 130);
       if (navigator.vibrate) navigator.vibrate(isChamp ? [60, 40, 120] : 50);
-      if (isChamp) { playCymbal(0.3); playPodiumSound(); if (typeof launchConfetti === 'function') launchConfetti('finale'); }
+      if (isChamp && typeof launchConfetti === 'function') launchConfetti('finale');
       _podiumTimer = setTimeout(revealNext, isChamp ? 1500 : 1100);
     };
     if (reduce) { reveal(); return; }
-    playDrumroll(isChamp ? 1.6 : 1.0, reveal);
+    // pausa de suspenso entre revelaciones (sin sonido — suena Michael Jackson de fondo)
+    _podiumTimer = setTimeout(reveal, isChamp ? 1100 : 700);
   }
 
-  // Tap saltea todo el reveal y muestra el podio completo
+  // Tap saltea solo la animación de revelado (muestra el podio completo), no avanza de fase
   overlay.onclick = (e) => {
     if (e.target.closest('.ceremony-close') || e.target.closest('.pr-cta')) return;
     if (k >= order.length) return;

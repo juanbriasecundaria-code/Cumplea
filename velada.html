@@ -7263,10 +7263,12 @@ function renderFinal() {
 // exactamente el tramo (startAt → endAt) que elijas, terminando con la música.
 const CREDITS_MUSIC = {
   enabled: true,
-  src: 'cancion-creditos.mp3', // archivo local junto al HTML
-  startAt: 0,     // segundo donde arranca "la mejor parte"
-  endAt:   null,  // segundo donde corta (null = hasta el final del tema)
+  src: 'cancion-creditos.mp3', // Wanna Be Startin' Somethin' — Michael Jackson
+  startAt: 1.3,    // saltea el silencio inicial; arranca con el groove icónico
+  endAt:   61,     // ~60s de música (máximo pedido)
   volume:  0.85,
+  fadeInMs:  2500, // entra suave en 2.5s (no se nota el arranque)
+  fadeOutMs: 3500, // se desvanece en 3.5s al final (no se nota el corte)
 };
 const CREDITS_FAST_SPEED = 95; // px/seg si no hay música (más rápido que antes)
 
@@ -7297,12 +7299,30 @@ function makeCreditsAudio() {
     return a;
   } catch (e) { return null; }
 }
-function fadeOutCreditsAudio() {
+// Sube el volumen de 0 al objetivo suavemente (fade in)
+function fadeInCreditsAudio() {
   const a = _creditsAudio; if (!a) return;
+  const target = (CREDITS_MUSIC.volume != null) ? CREDITS_MUSIC.volume : 0.85;
+  const fadeMs = (CREDITS_MUSIC.fadeInMs != null) ? CREDITS_MUSIC.fadeInMs : 2500;
+  const stepMs = 80;
+  const inc = target / Math.max(1, fadeMs / stepMs);
+  try { a.volume = 0; } catch (e) {}
   const step = () => {
     if (!_creditsAudio) return;
-    if (a.volume > 0.06) { try { a.volume = Math.max(0, a.volume - 0.06); } catch (e) {} setTimeout(step, 90); }
-    else { try { a.pause(); } catch (e) {} }
+    if (a.volume < target - inc) { try { a.volume = Math.min(target, a.volume + inc); } catch (e) {} setTimeout(step, stepMs); }
+    else { try { a.volume = target; } catch (e) {} }
+  };
+  step();
+}
+function fadeOutCreditsAudio() {
+  const a = _creditsAudio; if (!a) return;
+  const fadeMs = (CREDITS_MUSIC.fadeOutMs != null) ? CREDITS_MUSIC.fadeOutMs : 3000;
+  const stepMs = 90;
+  const dec = (a.volume || 0.85) / Math.max(1, fadeMs / stepMs);
+  const step = () => {
+    if (!_creditsAudio) return;
+    if (a.volume > dec) { try { a.volume = Math.max(0, a.volume - dec); } catch (e) {} setTimeout(step, stepMs); }
+    else { try { a.volume = 0; a.pause(); } catch (e) {} }
   };
   step();
 }
@@ -7458,7 +7478,15 @@ function rollCredits() {
       const win = Math.max(8, endAt - startAt);            // segundos de música a cubrir
       try { audio.currentTime = startAt; } catch (e) {}
       audio.play().catch(() => {});
+      fadeInCreditsAudio();                                 // entra suave (fade in)
       startRoll(travel() / win);                            // velocidad = recorrido / duración del tramo
+      // Arranca el fade out con anticipación para que se complete justo al llegar a endAt
+      const fadeOutMs = (CREDITS_MUSIC.fadeOutMs != null) ? CREDITS_MUSIC.fadeOutMs : 3000;
+      const fadeStartAt = endAt - (fadeOutMs / 1000);
+      const guard = setInterval(() => {
+        if (!_creditsAudio) { clearInterval(guard); return; }
+        if (_creditsAudio.currentTime >= fadeStartAt) { clearInterval(guard); fadeOutCreditsAudio(); }
+      }, 150);
     };
     audio.addEventListener('loadedmetadata', begin);
     audio.addEventListener('error', () => startRoll(CREDITS_FAST_SPEED)); // falta el archivo

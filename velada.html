@@ -6740,6 +6740,7 @@ const FINAL_CONFIG_DEFAULT = {
   puntos: 'El puntaje de la final se define según el juego elegido. El primero en llegar al objetivo gana la noche.',
   nota: 'El formato de la final lo define el organizador. Sugerencias: trivia con buzzer, Kahoot, Carrera de Mentes grupal o desafío especial.',
   ganador: '',
+  companero: '',
 };
 let FINAL_CONFIG = null;
 let _finalEditMode = false;
@@ -6787,12 +6788,12 @@ function saveFinalEdits() {
   const formato = document.getElementById('final-edit-formato')?.value?.trim();
   const puntos = document.getElementById('final-edit-puntos')?.value?.trim();
   const nota = document.getElementById('final-edit-nota')?.value?.trim();
-  const ganador = document.getElementById('final-edit-ganador')?.value?.trim();
+  const companero = document.getElementById('final-edit-companero')?.value?.trim();
   if (juego !== undefined) FINAL_CONFIG.juego = juego;
   if (formato) FINAL_CONFIG.formato = formato;
   if (puntos) FINAL_CONFIG.puntos = puntos;
   if (nota) FINAL_CONFIG.nota = nota;
-  if (ganador !== undefined) FINAL_CONFIG.ganador = ganador;
+  if (companero !== undefined) FINAL_CONFIG.companero = companero;
   saveFinalConfig();
   _finalEditMode = false;
   showToast('✓', 'Final guardada', false);
@@ -6833,13 +6834,11 @@ function saveTercerEdits() {
   const puntos = document.getElementById('tercer-edit-puntos')?.value?.trim();
   const nota = document.getElementById('tercer-edit-nota')?.value?.trim();
   const companero = document.getElementById('tercer-edit-companero')?.value?.trim();
-  const ganador = document.getElementById('tercer-edit-ganador')?.value?.trim();
   if (juego !== undefined) TERCER_CONFIG.juego = juego;
   if (formato) TERCER_CONFIG.formato = formato;
   if (puntos) TERCER_CONFIG.puntos = puntos;
   if (nota) TERCER_CONFIG.nota = nota;
   if (companero !== undefined) TERCER_CONFIG.companero = companero;
-  if (ganador !== undefined) TERCER_CONFIG.ganador = ganador;
   saveTercerConfig();
   _tercerEditMode = false;
   showToast('🥉', '3er puesto guardado', false);
@@ -6993,6 +6992,18 @@ function renderFinal() {
     ...sortedT.slice(0,1).map((t,i) => playerCard(t, i, 'f2')),
   ].join('') || `<div class="final-clasificado-none">Aún no hay datos suficientes.</div>`;
 
+  // Compañero que elige el 1° de la fase individual (para emparejar contra el equipo grupal)
+  const finalCompaneroHtml = (FINAL_CONFIG && FINAL_CONFIG.companero)
+    ? `<div class="final-player" style="border-style:dashed">
+         <div class="pos-badge" style="background:var(--gold-dim);color:var(--gold)">+</div>
+         <div style="flex:1">
+           <div style="font-weight:500;font-size:14px">${FINAL_CONFIG.companero}</div>
+           <div style="font-size:11px;color:var(--muted)">Compañero elegido (1° individual)</div>
+         </div>
+         <span style="font-size:11px;color:var(--muted);font-style:italic">invitado</span>
+       </div>`
+    : '';
+
   // ---- EDIT MODE ----
   const fc = FINAL_CONFIG;
   const editBar = _finalEditMode
@@ -7004,6 +7015,10 @@ function renderFinal() {
     : `<span style="font-size:12px;color:var(--muted);font-style:italic">Sin definir — editá para agregar el juego</span>`;
 
   const formatoSection = _finalEditMode ? `
+    <div class="final-edit-field">
+      <label class="final-edit-label">Compañero del 1° individual</label>
+      <input class="final-edit-input" id="final-edit-companero" placeholder="Nombre del compañero elegido…" value="${(fc.companero||'').replace(/"/g,'&quot;')}">
+    </div>
     <div class="final-edit-field">
       <label class="final-edit-label">Juego de la final</label>
       <input class="final-edit-input" id="final-edit-juego" placeholder="ej: Carrera de Mentes, Kahoot, Trivia…" value="${(fc.juego||'').replace(/"/g,'&quot;')}">
@@ -7019,10 +7034,6 @@ function renderFinal() {
     <div class="final-edit-field">
       <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
       <input class="final-edit-input" id="final-edit-nota" value="${fc.nota.replace(/"/g,'&quot;')}">
-    </div>
-    <div class="final-edit-field">
-      <label class="final-edit-label">🏆 Ganador de la final (cargalo cuando termine)</label>
-      <input class="final-edit-input" id="final-edit-ganador" placeholder="Equipo o jugador que ganó la final…" value="${(fc.ganador||'').replace(/"/g,'&quot;')}">
     </div>
     <button class="final-edit-save" onclick="saveFinalEdits()">Guardar cambios</button>
   ` : `
@@ -7111,10 +7122,6 @@ function renderFinal() {
       <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
       <input class="final-edit-input" id="tercer-edit-nota" value="${tc.nota.replace(/"/g,'&quot;')}">
     </div>
-    <div class="final-edit-field">
-      <label class="final-edit-label">🥉 Ganador del 3er puesto (cargalo cuando termine)</label>
-      <input class="final-edit-input" id="tercer-edit-ganador" placeholder="Equipo o dupla que ganó el bronce…" value="${(tc.ganador||'').replace(/"/g,'&quot;')}">
-    </div>
     <button class="final-edit-save" onclick="saveTercerEdits()">Guardar cambios</button>
   ` : `
     <div class="rule-label" style="margin-top:0">Juego</div>
@@ -7142,7 +7149,7 @@ function renderFinal() {
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:${fc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator final"></span>Clasificados a la final</div>
       ${fc.juego ? `<div style="margin-bottom:1rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--gold-dim);color:var(--gold);font-weight:600">🏆 ${fc.juego}</span></div>` : ''}
-      <div class="final-players">${clasificadosHtml}</div>
+      <div class="final-players">${clasificadosHtml}${finalCompaneroHtml}</div>
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${fc.nota}</div>
     </div>
 
@@ -7359,13 +7366,14 @@ function rollCredits() {
     }
   } catch (e) {}
 
-  const finalGame = (FINAL_CONFIG && FINAL_CONFIG.juego)
-    ? `<div class="cr-divider"></div><div class="cr-role">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>`
+  const finalGame = (FINAL_CONFIG && (FINAL_CONFIG.juego || FINAL_CONFIG.ganador))
+    ? `<div class="cr-divider"></div>`
+      + (FINAL_CONFIG.juego ? `<div class="cr-role">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
       + (FINAL_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
     : '';
 
-  const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && TERCER_CONFIG.juego)
-    ? `<div class="cr-role">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>`
+  const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && (TERCER_CONFIG.juego || TERCER_CONFIG.ganador))
+    ? (TERCER_CONFIG.juego ? `<div class="cr-role">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
       + (TERCER_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
     : '';
 

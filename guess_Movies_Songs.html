@@ -292,6 +292,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-poster{height:72vh;max-height:72vh;max-width:90vw;width:auto;object-fit:contain;border-radius:14px;box-shadow:0 16px 100px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.08);display:block}
 .part-poster-inner{position:relative;display:inline-flex;border-radius:14px}
 .part-poster-ph{width:min(40vw,340px);height:min(58vh,480px);border-radius:14px;background:var(--surface2);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:80px}
+/* Frame (landscape) sizing — más grande que el póster */
+.part-poster.is-frame{height:auto;width:min(92vw,1000px);max-width:92vw;aspect-ratio:16/9;object-fit:cover;max-height:62vh}
+/* Crop reveal mode: zoomed random crop hasta revelar */
+.part-poster.crop-mode{object-fit:cover;height:62vh;max-height:62vh;width:min(78vw,640px);transform:scale(1.55)}
+.part-poster.crop-mode.is-frame{height:auto;aspect-ratio:16/9;transform:scale(1.6)}
+.part-poster.crop-mode.crop-revealed{object-fit:contain;transform:scale(1);width:auto;height:72vh;max-height:72vh}
+.part-poster.crop-mode.is-frame.crop-revealed{height:auto;width:min(92vw,1000px);aspect-ratio:16/9}
+/* Grid reveal mode: 3x3 cuadros que se destapan de a uno */
+.grid-overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);border-radius:14px;overflow:hidden;z-index:4}
+.grid-tile{background:linear-gradient(150deg,var(--surface2),var(--surface));border:1px solid rgba(0,0,0,.45);opacity:1;transition:opacity .55s cubic-bezier(.22,1,.36,1)}
+.grid-tile.open{opacity:0;pointer-events:none}
 .reveal-overlay{position:absolute;inset:0;border-radius:12px;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.8) 100%);display:flex;align-items:flex-end;justify-content:center;padding:.75rem;z-index:5;animation:revealIn .4s cubic-bezier(.22,1,.36,1)}
 @keyframes revealIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .reveal-title{font-size:clamp(1.4rem,4vw,3rem);font-weight:900;color:#fff;text-align:center;text-shadow:0 2px 16px rgba(0,0,0,.95);letter-spacing:-.01em;line-height:1.15;padding:0 1rem}
@@ -542,6 +553,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="act-label" id="reveal-label">Oculto para participantes</span>
       </button>
     </div>
+    <div class="action-row" id="grid-hint-row" style="display:none;margin-bottom:.25rem">
+      <button class="act-btn" onclick="revealRandomTile()" style="background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);flex:1">
+        <span class="act-icon">💡</span>
+        <span class="act-label" id="grid-hint-label">Destapar un cuadro (0/9)</span>
+      </button>
+    </div>
     <div class="action-row" id="act-idle">
       <button class="act-btn act-buzz-a" onclick="setBuzzer('a')"><span class="act-icon">🔔</span><span class="act-label" id="buzz-label-a">Equipo 1 buzzó</span></button>
       <button class="act-btn act-pass" onclick="passCard()"><span class="act-icon">→</span><span class="act-label">Pasar</span></button>
@@ -607,15 +624,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="add-form" id="add-movie-form" style="display:none">
       <div class="add-form-title">🎬 Película</div>
       <div class="fc"><div class="form-label">Título (solo el conductor)</div><input class="form-input" id="nm-title" placeholder="Ej: Titanic" maxlength="80"></div>
-      <div class="fc"><div class="form-label">Fuente</div>
-        <div class="ist-row"><button class="ist-btn on" id="ist-url" onclick="setImgSrc('url')">🔗 URL</button><button class="ist-btn" id="ist-file" onclick="setImgSrc('file')">📁 Archivo</button></div>
+      <div class="fc"><div class="form-label">Tipo de imagen</div>
+        <div class="ist-row"><button class="ist-btn on" id="ik-poster" onclick="setImgKind('poster')">🖼 Póster</button><button class="ist-btn" id="ik-frame" onclick="setImgKind('frame')">🎞 Frame(s)</button></div>
       </div>
-      <div class="fc" id="img-url-wrap"><div class="form-label">URL del póster</div><input class="form-input" id="nm-url" placeholder="https://…" type="url"></div>
-      <div class="fc" id="img-file-wrap" style="display:none">
-        <div class="form-label">Imagen</div>
-        <button class="file-btn" onclick="document.getElementById('poster-file').click()">📂 Elegir archivo…</button>
-        <input type="file" id="poster-file" accept="image/*" onchange="handleFile(this)" style="display:none">
-        <div id="file-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
+      <div id="poster-fields">
+        <div class="fc"><div class="form-label">Fuente</div>
+          <div class="ist-row"><button class="ist-btn on" id="ist-url" onclick="setImgSrc('url')">🔗 URL</button><button class="ist-btn" id="ist-file" onclick="setImgSrc('file')">📁 Archivo</button></div>
+        </div>
+        <div class="fc" id="img-url-wrap"><div class="form-label">URL del póster</div><input class="form-input" id="nm-url" placeholder="https://…" type="url"></div>
+        <div class="fc" id="img-file-wrap" style="display:none">
+          <div class="form-label">Imagen</div>
+          <button class="file-btn" onclick="document.getElementById('poster-file').click()">📂 Elegir archivo…</button>
+          <input type="file" id="poster-file" accept="image/*" onchange="handleFile(this)" style="display:none">
+          <div id="file-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
+        </div>
+      </div>
+      <div id="frame-fields" style="display:none">
+        <div class="fc"><div class="form-label">Frame(s) de la película — podés elegir varios</div>
+          <button class="file-btn" onclick="document.getElementById('frame-file').click()">📂 Elegir imágenes…</button>
+          <input type="file" id="frame-file" accept="image/*" multiple onchange="handleFrameFiles(this)" style="display:none">
+          <div id="frame-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
+        </div>
+        <div class="fc"><div class="form-label">o URLs (una por línea — ej. stills de TMDB)</div>
+          <textarea class="form-input" id="nm-frame-urls" rows="2" placeholder="https://image.tmdb.org/t/p/w780/…jpg"></textarea>
+        </div>
+      </div>
+      <div class="fc"><div class="form-label">Cómo se revela</div>
+        <div class="ist-row"><button class="ist-btn on" id="rv-full" onclick="setRevealMode('full')">🖼 Completo</button><button class="ist-btn" id="rv-grid" onclick="setRevealMode('grid')">▦ Grid</button><button class="ist-btn" id="rv-crop" onclick="setRevealMode('crop')">🔍 Recorte</button></div>
       </div>
       <div class="fl"><button class="add-submit" onclick="submitMovie()">Guardar película</button><button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="hideAddForms()">✕</button></div>
     </div>
@@ -1048,6 +1083,8 @@ let deck=[],order=[],cardIdx=0,scoreA=0,scoreB=0,nameA='Equipo 1',nameB='Equipo 
 let timerLeft=15,timerActive=false,timerInterval=null;
 let phase='idle',activeBuzzer=null,revealed=false;
 let MODE=null,nextId=200,_imgSrc='url',_fileData=null,_audioSrc='yt',_audioData=null;
+let _imgKind='poster',_revealMode='full',_frameFiles=[];
+let gridRevealed=[],_lastGridCardId=null,_cropSeeds={};
 
 // ─── SYNC ────────────────────────────────────────────────────────
 let _bc=null,_hb=null;
@@ -1056,13 +1093,21 @@ function initSync(){
   window.addEventListener('storage',e=>{if(e.key==='gms_live'&&MODE==='participant')onLive(e.newValue);});
 }
 function broadcast(data){const j=JSON.stringify(data);if(_bc)try{_bc.postMessage(j);}catch(e){}try{localStorage.setItem('gms_live',j);}catch(e){}}
+function cardImageInfo(c){
+  if(!c||c.type!=='movie')return{src:null,isFrame:false};
+  if(c.imgKind==='frame'&&c.frames&&c.frames.length){return{src:c.frames[0],isFrame:true};}
+  return{src:(c.imgData||c.img)||null,isFrame:false};
+}
 function sendState(){
   const cur=currentCard();
+  const imgInfo=cardImageInfo(cur);
   broadcast({type:'state',cardIdx,scoreA,scoreB,nameA,nameB,timerLeft,timerActive,phase,activeBuzzer,revealed,
     cardType:cur?.type||null,youtubeId:cur?.youtubeId||null,startAt:cur?.startAt||0,
     // audioData intencionalmente omitido: el audio local queda solo en la compu del conductor
     hasLocalAudio:cur?.type==='song'?!!(cur.audioData):false,
-    imgUrl:cur?.type==='movie'?(cur.imgData||cur.img)||null:null,
+    imgUrl:imgInfo.src,isFrame:imgInfo.isFrame,
+    revealMode:cur?.type==='movie'?(cur.revealMode||'full'):'full',
+    gridRevealed:gridRevealed,
     cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length,t:Date.now()});
 }
 function startHeartbeat(){if(_hb)clearInterval(_hb);_hb=setInterval(sendState,200);sendState();}
@@ -1091,7 +1136,7 @@ function saveDeck(){
   idbSet('deck', deck);
   // 2. localStorage como respaldo SOLO si entra (deck liviano sin imágenes)
   try{
-    const light=deck.map(c=>{const x={...c}; if(x.imgData)x.imgData=''; if(x.audioData)x.audioData=''; return x;});
+    const light=deck.map(c=>{const x={...c}; if(x.imgData)x.imgData=''; if(x.audioData)x.audioData=''; if(x.frames&&x.frames.length)x.frames=x.frames.map(f=>f.startsWith('data:')?'':f); return x;});
     localStorage.setItem(SK.DECK,JSON.stringify(light));
   }catch(e){/* demasiado grande, no pasa nada: ya está en IndexedDB */}
   // 3. Firebase (sin blobs) — sincronización entre dispositivos
@@ -1108,10 +1153,11 @@ function deckForFirebase(){
     const copy={...c};
     if(copy.audioData) copy.audioData='';   // audio local no se sube
     if(copy.imgData)   copy.imgData='';      // imagen local no se sube
+    if(copy.frames&&copy.frames.length) copy.frames=copy.frames.map(f=>f.startsWith('data:')?'':f);
     return copy;
   });
 }
-function hasLocalBlobs(){ return deck.some(c=>c.audioData||c.imgData); }
+function hasLocalBlobs(){ return deck.some(c=>c.audioData||c.imgData||(c.frames&&c.frames.some(f=>f.startsWith('data:')))); }
 function saveDeckToFirebase(){
   if(!fbDeckRef) return;
   clearTimeout(_deckSaveTimer);
@@ -1153,12 +1199,15 @@ function loadDeckFromFirebase(cb){
     if(d && Array.isArray(d.cards) && d.cards.length){
       // Mapa de blobs locales por id (para no perderlos al traer de Firebase)
       const localBlobs={};
-      deck.forEach(c=>{ if(c.audioData||c.imgData) localBlobs[c.id]={audioData:c.audioData,imgData:c.imgData}; });
+      deck.forEach(c=>{ if(c.audioData||c.imgData||(c.frames&&c.frames.some(f=>f.startsWith('data:')))) localBlobs[c.id]={audioData:c.audioData,imgData:c.imgData,frames:c.frames}; });
       deck=d.cards.map(c=>{
         const merged={...c};
         if(localBlobs[c.id]){
           if(localBlobs[c.id].audioData && !merged.audioData) merged.audioData=localBlobs[c.id].audioData;
           if(localBlobs[c.id].imgData   && !merged.imgData)   merged.imgData=localBlobs[c.id].imgData;
+          if(localBlobs[c.id].frames && merged.frames && merged.frames.length){
+            merged.frames=merged.frames.map((f,idx)=>(!f&&localBlobs[c.id].frames[idx])?localBlobs[c.id].frames[idx]:f);
+          }
         }
         return merged;
       });
@@ -1288,8 +1337,10 @@ function renderCondCard(){
   const nb=`<span class="num-badge">${cardIdx+1}</span>`;
   let inner='';
   if(c.type==='movie'){
-    const src=c.imgData||c.img||'';
-    inner=src?`<div class="cond-poster-wrap"><img class="cond-poster" src="${esc(src)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt=""><div class="cond-poster-ph" style="display:none">🎬</div></div>`:'<div class="cond-poster-wrap"><div class="cond-poster-ph">🎬</div></div>';
+    const info=cardImageInfo(c);
+    const src=info.src||'';
+    const modeTag=c.revealMode&&c.revealMode!=='full'?`<span class="num-badge" style="position:absolute;bottom:.4rem;left:.4rem">${c.revealMode==='grid'?'▦ Grid':'🔍 Recorte'}${info.isFrame?' · 🎞 Frame':''}</span>`:(info.isFrame?'<span class="num-badge" style="position:absolute;bottom:.4rem;left:.4rem">🎞 Frame</span>':'');
+    inner=src?`<div class="cond-poster-wrap" style="position:relative"><img class="cond-poster" src="${esc(src)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">${modeTag}<div class="cond-poster-ph" style="display:none">🎬</div></div>`:'<div class="cond-poster-wrap"><div class="cond-poster-ph">🎬</div></div>';
   } else {
     const hy=!!c.youtubeId;
     const ha=!!c.audioData;
@@ -1303,6 +1354,8 @@ function renderCondCard(){
   }
   wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>`;
   wrap.className='cond-card';
+  if(c.id!==_lastGridCardId){gridRevealed=(c.type==='movie'&&c.revealMode==='grid')?Array(9).fill(false):[];_lastGridCardId=c.id;}
+  syncGridHintUI();
   if(c.type==='song'&&c.youtubeId&&c.id!==_lastCondId) createCondPlayer(c);
   if(c.type==='song'&&c.audioData){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c.startAt||0;}}
   _lastCondId=c.id;
@@ -1332,6 +1385,7 @@ function syncPhaseUI(){
   else if(phase==='playing_a'){card.classList.add('phase-a');banner.className='phase-banner show pb-a';banner.textContent='⏱ Respondiendo: '+nameA;playing.style.display='';}
   else if(phase==='playing_b'){card.classList.add('phase-b');banner.className='phase-banner show pb-b';banner.textContent='⏱ Respondiendo: '+nameB;playing.style.display='';}
   else if(phase==='reveal'){card.classList.add('phase-reveal');banner.className='phase-banner show pb-reveal';banner.textContent='✅ ¡Correcto!';reveal.style.display='';}
+  syncGridHintUI();
 }
 
 // ─── CONDUCTOR: TIMER ────────────────────────────────────────────
@@ -1346,9 +1400,34 @@ function syncTimerUI(){const el=document.getElementById('timer-num');if(!el)retu
 function adjScore(t,d){if(t==='a')scoreA=Math.max(0,scoreA+d);else scoreB=Math.max(0,scoreB+d);saveScore();syncScoreUI();sendState();}
 function syncScoreUI(){document.getElementById('c-sa').textContent=scoreA;document.getElementById('c-sb').textContent=scoreB;const diff=Math.abs(scoreA-scoreB),w=scoreA>scoreB?'a':scoreB>scoreA?'b':null;const bp=document.getElementById('c-bonus');if(diff>=5&&w){bp.textContent='🏆 Bonus: '+(w==='a'?nameA:nameB);bp.classList.add('show');}else bp.classList.remove('show');}
 function syncNamesUI(){['a','b'].forEach(t=>{const n=t==='a'?nameA:nameB;['c-n','p-n'].forEach(p=>{const el=document.getElementById(p+t);if(el)el.textContent=n;});const bl=document.getElementById('buzz-label-'+t);if(bl)bl.textContent=n+' buzzó';});}
+function syncGridHintUI(){
+  const c=currentCard();
+  const row=document.getElementById('grid-hint-row');
+  if(!row)return;
+  const isGrid=c&&c.type==='movie'&&c.revealMode==='grid';
+  row.style.display=(isGrid&&revealed&&phase!=='reveal')?'':'none';
+  if(isGrid){
+    const open=gridRevealed.filter(Boolean).length;
+    const lbl=document.getElementById('grid-hint-label');
+    if(lbl)lbl.textContent=open>=9?'Todos los cuadros destapados':`Destapar un cuadro (${open}/9)`;
+  }
+}
+function revealRandomTile(){
+  const c=currentCard();
+  if(!c||c.type!=='movie'||c.revealMode!=='grid')return;
+  if(!gridRevealed.length)gridRevealed=Array(9).fill(false);
+  const closed=gridRevealed.map((v,i)=>v?-1:i).filter(i=>i>=0);
+  if(!closed.length){showToast('Ya están todos los cuadros destapados');return;}
+  const pick=closed[Math.floor(Math.random()*closed.length)];
+  gridRevealed[pick]=true;
+  syncGridHintUI();
+  sendState();
+  showToast('💡 Cuadro destapado ('+gridRevealed.filter(Boolean).length+'/9)');
+}
 function toggleReveal(){
   revealed=!revealed;
   syncRevealUI();
+  syncGridHintUI();
   sendState();
   if(revealed){ fbOpenBuzzer(); } else { fbLock(); }
   showToast(revealed?'👁 Carta visible — 🔓 buzzer habilitado':'🙈 Carta oculta — 🔒 buzzer bloqueado');
@@ -1425,7 +1504,13 @@ function importDeckJson(input){
 }
 
 // ─── PARTICIPANT: RENDER ─────────────────────────────────────────
-let _pLastType=null,_pLastId=null,_pLastPhase=null;
+let _pLastType=null,_pLastId=null,_pLastPhase=null,_pLastGrid=null;
+function updateGridTiles(d){
+  const overlay=document.getElementById('part-grid-overlay');
+  if(!overlay)return;
+  const tiles=overlay.querySelectorAll('.grid-tile');
+  (d.gridRevealed||[]).forEach((o,i)=>{if(tiles[i])tiles[i].classList.toggle('open',!!o);});
+}
 function renderParticipant(d){
   document.getElementById('p-na').textContent=d.nameA||'Equipo 1';
   document.getElementById('p-nb').textContent=d.nameB||'Equipo 2';
@@ -1443,7 +1528,8 @@ function renderParticipant(d){
   }
   const cc=d.cardType!==_pLastType||(d.cardType==='song'&&d.youtubeId!==_pLastId)||(d.cardType==='movie'&&d.imgUrl!==_pLastId);
   const pc=d.phase!==_pLastPhase;
-  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastPhase=d.phase;}
+  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
+  else if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
   const pm=document.getElementById('part-main');
   const pt=pm.querySelector('.part-timer');
   if(pt){pt.classList.toggle('show',d.timerActive||false);const tn=pt.querySelector('.part-timer-num');if(tn){tn.textContent=d.timerLeft;tn.classList.toggle('low',(d.timerLeft||0)<=5);}}
@@ -1457,8 +1543,21 @@ function buildPartCard(d){
   let cHtml='';
   if(d.cardType==='movie'){
     const src=d.imgUrl||'';
-    const rv=isRev?`<div class="reveal-overlay"><div class="reveal-title">${esc(d.cardTitle||'')}</div></div><div class="reveal-check">✅</div>`:'';
-    cHtml=`<div class="part-poster-wrap">${src?`<div class="part-poster-inner"><img class="part-poster" src="${esc(src)}" onerror="this.style.opacity='.15'" alt="poster">${rv}</div>`:'<div class="part-poster-ph">🎬</div>'}</div>`;
+    const mode=d.revealMode||'full';
+    const frameCls=d.isFrame?' is-frame':'';
+    if(src&&mode==='crop'&&!isRev){
+      if(!_cropSeeds[src])_cropSeeds[src]={x:12+Math.random()*76,y:12+Math.random()*76};
+      const seed=_cropSeeds[src];
+      cHtml=`<div class="part-poster-wrap"><div class="part-poster-inner"><img class="part-poster crop-mode${frameCls}" style="object-position:${seed.x}% ${seed.y}%" src="${esc(src)}" onerror="this.style.opacity='.15'" alt="poster"></div></div>`;
+    } else if(src&&mode==='grid'&&!isRev){
+      const gr=(d.gridRevealed&&d.gridRevealed.length===9)?d.gridRevealed:Array(9).fill(false);
+      const tiles=gr.map(o=>`<div class="grid-tile${o?' open':''}"></div>`).join('');
+      cHtml=`<div class="part-poster-wrap"><div class="part-poster-inner"><img class="part-poster${frameCls}" src="${esc(src)}" onerror="this.style.opacity='.15'" alt="poster"><div class="grid-overlay" id="part-grid-overlay">${tiles}</div></div></div>`;
+    } else {
+      const cropRevCls=mode==='crop'&&isRev?' crop-mode crop-revealed':'';
+      const rv=isRev?`<div class="reveal-overlay"><div class="reveal-title">${esc(d.cardTitle||'')}</div></div><div class="reveal-check">✅</div>`:'';
+      cHtml=`<div class="part-poster-wrap">${src?`<div class="part-poster-inner"><img class="part-poster${frameCls}${cropRevCls}" src="${esc(src)}" onerror="this.style.opacity='.15'" alt="poster">${rv}</div>`:'<div class="part-poster-ph">🎬</div>'}</div>`;
+    }
   } else {
     if(isRev){cHtml=`<div class="song-reveal-wrap"><div class="song-reveal-icon">🎵✅</div><div class="song-reveal-title">${esc(d.cardTitle||'')}</div></div>`;}
     else{
@@ -1485,23 +1584,53 @@ function renderDeckList(){
   const m=deck.filter(c=>c.type==='movie').length,s=deck.filter(c=>c.type==='song').length;
   document.getElementById('deck-count-label').textContent=`${m} películas · ${s} canciones`;
   document.getElementById('deck-list').innerHTML=deck.map((c,i)=>{
-    const th=c.type==='movie'?`<div class="deck-thumb">${(c.imgData||c.img)?`<img src="${esc(c.imgData||c.img||'')}" onerror="this.parentElement.textContent='🎬'" loading="lazy">`:'🎬'}</div>`:`<div class="deck-thumb">🎵</div>`;
-    const meta=c.type==='movie'?(c.imgData?'📁 Local':c.img?'🔗 Wikipedia':'sin póster'):(c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio');
+    const thumbSrc=c.type==='movie'?(c.imgKind==='frame'?(c.frames&&c.frames[0]):(c.imgData||c.img)):null;
+    const th=c.type==='movie'?`<div class="deck-thumb">${thumbSrc?`<img src="${esc(thumbSrc)}" onerror="this.parentElement.textContent='🎬'" loading="lazy">`:'🎬'}</div>`:`<div class="deck-thumb">🎵</div>`;
+    const modeTag=c.type==='movie'?(c.revealMode==='grid'?' · ▦ Grid':c.revealMode==='crop'?' · 🔍 Recorte':''):'';
+    const meta=c.type==='movie'?((c.imgKind==='frame'?`🎞 ${(c.frames||[]).length} frame(s)`:(c.imgData?'📁 Local':c.img?'🔗 URL':'sin póster'))+modeTag):(c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio');
     return `<div class="deck-item">${th}<div class="deck-info"><div class="deck-title">${esc(c.title)}</div><div class="deck-meta">${esc(meta)}</div></div><div class="deck-btns"><button class="deck-btn" onclick="editCard(${i})">✏️</button><button class="deck-btn del" onclick="deleteCard(${i})">✕</button></div></div>`;
   }).join('');
 }
 function deleteCard(i){if(!confirm(`¿Eliminar "${deck[i].title}"?`))return;deck.splice(i,1);saveDeck();order=deck.map((_,j)=>j);cardIdx=0;saveOrder();renderDeckList();renderCondCard();updateCount();showToast('Eliminado');}
 function editCard(i){
   const c=deck[i];
-  if(c.type==='movie'){showAddForm('movie');document.getElementById('nm-title').value=c.title;document.getElementById('nm-url').value=c.img||'';document.getElementById('add-movie-form').dataset.ei=i;}
+  if(c.type==='movie'){
+    showAddForm('movie');
+    document.getElementById('nm-title').value=c.title;
+    document.getElementById('nm-url').value=c.img||'';
+    setImgKind(c.imgKind==='frame'?'frame':'poster');
+    setRevealMode(c.revealMode||'full');
+    if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';}
+    document.getElementById('add-movie-form').dataset.ei=i;
+  }
   else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}document.getElementById('add-song-form').dataset.ei=i;}
   setTimeout(()=>{document.getElementById('deck-panel').scrollTop=0;},80);
 }
 function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');}
+function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
+function setRevealMode(m){_revealMode=m;['full','grid','crop'].forEach(x=>document.getElementById('rv-'+x).classList.toggle('on',x===m));}
+function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
 function setImgSrc(s){_imgSrc=s;document.getElementById('ist-url').classList.toggle('on',s==='url');document.getElementById('ist-file').classList.toggle('on',s==='file');document.getElementById('img-url-wrap').style.display=s==='url'?'':'none';document.getElementById('img-file-wrap').style.display=s==='file'?'':'none';}
 function handleFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_fileData=e.target.result;document.getElementById('file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
-function submitMovie(){const t=document.getElementById('nm-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-movie-form').dataset.ei);const imgData=_imgSrc==='file'?_fileData||'':'';const img=_imgSrc==='url'?document.getElementById('nm-url').value.trim():'';const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();showToast(isNaN(ei)?'Película agregada ✓':'Actualizada ✓');}
+function submitMovie(){
+  const t=document.getElementById('nm-title').value.trim();if(!t){showToast('Falta el título');return;}
+  const ei=parseInt(document.getElementById('add-movie-form').dataset.ei);
+  let img='',imgData='',frames=[];
+  if(_imgKind==='frame'){
+    frames=[..._frameFiles];
+    const urls=(document.getElementById('nm-frame-urls').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    frames=frames.concat(urls);
+  } else {
+    imgData=_imgSrc==='file'?_fileData||'':'';
+    img=_imgSrc==='url'?document.getElementById('nm-url').value.trim():'';
+  }
+  const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData,imgKind:_imgKind,frames,revealMode:_revealMode};
+  if(!isNaN(ei))deck[ei]=card;else deck.push(card);
+  saveDeck();
+  if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}
+  renderDeckList();hideAddForms();showToast(isNaN(ei)?'Película agregada ✓':'Actualizada ✓');
+}
 function setAudioSrc(s){_audioSrc=s;document.getElementById('ast-yt').classList.toggle('on',s==='yt');document.getElementById('ast-file').classList.toggle('on',s==='file');document.getElementById('audio-yt-wrap').style.display=s==='yt'?'':'none';document.getElementById('audio-file-wrap').style.display=s==='file'?'':'none';}
 function handleAudioFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_audioData=e.target.result;document.getElementById('audio-file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
 function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='';if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;}const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,audioData};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();showToast(isNaN(ei)?'Canción agregada ✓':'Actualizada ✓');}
